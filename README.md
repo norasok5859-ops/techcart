@@ -376,10 +376,13 @@ The project is ready for [Vercel](https://vercel.com) (`vercel.json` uses the Py
 
 How it works on Vercel:
 - Static files (CSS, JS, Bootstrap) are served by **WhiteNoise**; product photos in `media/products/` are served by Django.
-- Vercel's disk is read-only except `/tmp`, so each server instance starts from the bundled demo database
-  `deploy/demo.sqlite3` (69 products, the demo accounts, no orders). Orders and new accounts made on the live
-  site are kept only until Vercel recycles that instance. For permanent data, use a hosted database
-  (for example PostgreSQL) instead of SQLite.
+- **Database:** add a free PostgreSQL database in Vercel (**Storage → Create Database → Neon**) and connect it to
+  this project. Vercel then sets `DATABASE_URL`, and on its first start the site creates the tables and loads the
+  demo data from `deploy/demo.sqlite3` (69 products and the demo accounts) — see `config/bootstrap.py`.
+  Logins, carts and orders are then shared by every server instance and kept permanently.
+- Without `DATABASE_URL`, each instance uses its own copy of the demo database in `/tmp` (Vercel's disk is
+  read-only elsewhere). Logins still work (they are kept in a signed cookie), but carts, orders and new
+  accounts disappear when Vercel recycles that instance.
 
 ---
 

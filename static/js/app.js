@@ -17,6 +17,12 @@
       headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
       body: body ? JSON.stringify(body) : undefined,
     });
+    // Session ended after this page was loaded: send the user to log in instead of
+    // showing DRF's "Authentication credentials were not provided."
+    if (res.status === 401 || res.status === 403) {
+      window.location.href = loginUrl + "?next=" + encodeURIComponent(location.pathname + location.search);
+      throw new Error("Your login has expired. Please log in again.");
+    }
     let data = null;
     if (res.status !== 204) { try { data = await res.json(); } catch (e) { /* no body */ } }
     if (!res.ok) {

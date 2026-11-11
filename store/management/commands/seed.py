@@ -56,7 +56,10 @@ class Command(BaseCommand):
             user.first_name, user.last_name = acc["first_name"], acc["last_name"]
             user.is_staff = user.is_superuser = acc["is_staff"]
             user.is_active = True
-            user.set_password(acc["password"])
+            # Only reset a password that changed: set_password() logs the user out of every
+            # open browser session, which broke API calls on pages that were already open.
+            if not user.check_password(acc["password"]):
+                user.set_password(acc["password"])
             user.save()
 
         call_command("generate_product_art", stdout=self.stdout)

@@ -100,6 +100,21 @@ DATABASES = {
     }
 }
 
+# A hosted PostgreSQL database (e.g. Neon, added from Vercel → Storage) keeps one shared copy of the data,
+# so logins, carts and orders work on every Vercel instance. Vercel's Neon integration sets DATABASE_URL.
+DATABASE_URL = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
+if DATABASE_URL:
+    import dj_database_url
+
+    DATABASES["default"] = dj_database_url.parse(DATABASE_URL, conn_max_age=60, conn_health_checks=True)
+    DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = True  # needed behind a connection pooler
+    # The bundled demo data, read once to fill an empty hosted database (config/bootstrap.py).
+    DATABASES["demo"] = {"ENGINE": "django.db.backends.sqlite3", "NAME": "/tmp/techcart-demo.sqlite3"}
+elif ON_VERCEL:
+    # No shared database yet: each instance has its own /tmp copy, so keep logins in a signed cookie
+    # instead of that copy. Otherwise a login made on one instance is unknown to the next one.
+    SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+
 
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators

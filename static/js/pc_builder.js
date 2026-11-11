@@ -180,12 +180,14 @@
     check();
   });
 
+  // Keep the build (it's in localStorage) and come back to it after logging in.
+  function goToLogin() {
+    save();
+    window.location.href = document.body.dataset.loginUrl + "?next=" + encodeURIComponent(location.pathname);
+  }
+
   addBtn.addEventListener("click", async () => {
-    if (!isLoggedIn) {
-      save();
-      window.location.href = document.body.dataset.loginUrl + "?next=" + encodeURIComponent(location.pathname);
-      return;
-    }
+    if (!isLoggedIn) { goToLogin(); return; }
     addBtn.disabled = true;
     const original = addBtn.innerHTML;
     addBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Adding…';
@@ -195,7 +197,14 @@
         headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
         body: JSON.stringify({ parts: currentParts() }),
       });
-      const data = await res.json();
+      // The page was drawn while logged in, but the session has since ended (logged out in
+      // another tab, session expired, or `manage.py seed` reset the demo passwords).
+      if (res.status === 401 || res.status === 403) {
+        document.getElementById("build-hint").textContent = "Your login has expired. Taking you to log in again…";
+        goToLogin();
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || "Could not add the build to your cart.");
       const badge = document.getElementById("cart-badge");
       if (badge) { badge.textContent = data.cart_count; badge.classList.remove("d-none"); }
