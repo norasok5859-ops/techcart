@@ -1,0 +1,199 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}TechCart{% endblock %} · TechCart</title>
+  <meta name="description" content="TechCart: laptops, monitors, PC components and accessories. Build your own PC. Cash on delivery.">
+  <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body class="d-flex flex-column min-vh-100" data-authenticated="{{ user.is_authenticated|yesno:'1,0' }}"
+      data-login-url="{% url 'accounts:login' %}">
+
+<div class="tc-topbar d-none d-md-block">
+  <div class="container d-flex justify-content-between align-items-center py-2">
+    <div class="d-flex gap-4">
+      <span><i class="bi bi-truck me-1"></i>Free delivery · pay by KHQR or cash on delivery</span>
+      <span><i class="bi bi-shield-check me-1"></i>Genuine products, official warranty</span>
+    </div>
+    <div class="d-flex gap-3">
+      <span><i class="bi bi-arrow-repeat me-1"></i>7-day easy returns</span>
+      {% if user.is_staff %}<a href="{% url 'dashboard:overview' %}"><i class="bi bi-speedometer2 me-1"></i>Admin</a>{% endif %}
+    </div>
+  </div>
+</div>
+
+{% with url_name=request.resolver_match.url_name %}
+<nav class="navbar navbar-expand-lg tc-nav sticky-top">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="{% url 'store:home' %}">
+      <span class="tc-logo"><i class="bi bi-cpu"></i></span><span>Tech<span class="text-grad">Cart</span></span>
+    </a>
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+            aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav ms-lg-3 me-auto gap-lg-1">
+        <li class="nav-item"><a class="nav-link {% if url_name == 'home' %}active{% endif %}" href="{% url 'store:home' %}">Home</a></li>
+        <li class="nav-item"><a class="nav-link {% if url_name == 'product_list' %}active{% endif %}" href="{% url 'store:product_list' %}">Shop</a></li>
+        <li class="nav-item dropdown position-static">
+          <a class="nav-link dropdown-toggle {% if url_name == 'category' %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Categories</a>
+          <div class="dropdown-menu tc-mega">
+            <div class="row g-3">
+              {% for label, cats in nav_groups %}
+                <div class="col-lg-4">
+                  <div class="tc-mega-title">{{ label }}</div>
+                  {% for c in cats %}
+                    <a class="dropdown-item" href="{% url 'store:category' c.slug %}"><i class="bi bi-{{ c.icon }} me-2 text-accent"></i>{{ c.name }}</a>
+                  {% endfor %}
+                </div>
+              {% endfor %}
+            </div>
+            <div class="tc-mega-foot">
+              <a href="{% url 'store:product_list' %}"><i class="bi bi-grid me-1"></i>All products</a>
+              <a href="{% url 'store:pc_builder' %}"><i class="bi bi-tools me-1"></i>Build your own PC</a>
+            </div>
+          </div>
+        </li>
+        <li class="nav-item"><a class="nav-link tc-nav-build {% if url_name == 'pc_builder' %}active{% endif %}" href="{% url 'store:pc_builder' %}"><i class="bi bi-tools me-1"></i>Build a PC</a></li>
+      </ul>
+      <form class="d-flex my-2 my-lg-0 me-lg-3 tc-search" role="search" action="{% url 'store:product_list' %}">
+        <div class="input-group">
+          <input class="form-control" type="search" name="q" placeholder="Search products…" aria-label="Search products" value="{{ q|default:'' }}">
+          <button class="btn btn-accent" type="submit" aria-label="Search"><i class="bi bi-search"></i></button>
+        </div>
+      </form>
+      <ul class="navbar-nav align-items-lg-center gap-lg-1">
+        <li class="nav-item">
+          <a class="nav-link tc-icon-btn {% if url_name == 'cart' %}active{% endif %}" href="{% url 'store:cart' %}" aria-label="Cart">
+            <i class="bi bi-bag fs-5"></i><span class="d-lg-none ms-2">Cart</span>
+            <span id="cart-badge" class="badge rounded-pill bg-accent tc-badge {% if not cart_count %}d-none{% endif %}">{{ cart_count }}</span>
+          </a>
+        </li>
+        {% if user.is_authenticated %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="tc-avatar">{{ user.first_name|default:user.username|slice:":1" }}</span>
+              <span>{{ user.first_name|default:user.username }}</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li class="px-3 py-2 small text-muted">Signed in as <strong class="text-body">{{ user.username }}</strong></li>
+              <li><a class="dropdown-item" href="{% url 'store:order_list' %}"><i class="bi bi-receipt me-2"></i>My orders</a></li>
+              <li><a class="dropdown-item" href="{% url 'store:cart' %}"><i class="bi bi-bag me-2"></i>My cart</a></li>
+              {% if user.is_staff %}
+                <li><a class="dropdown-item" href="{% url 'dashboard:overview' %}"><i class="bi bi-speedometer2 me-2"></i>Admin dashboard</a></li>
+              {% endif %}
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
+                  <button class="dropdown-item text-danger" type="submit"><i class="bi bi-box-arrow-right me-2"></i>Log out</button>
+                </form>
+              </li>
+            </ul>
+          </li>
+        {% else %}
+          <li class="nav-item"><a class="nav-link" href="{% url 'accounts:login' %}">Log in</a></li>
+          <li class="nav-item ms-lg-1"><a class="btn btn-accent" href="{% url 'accounts:register' %}">Sign up</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+{% endwith %}
+
+{% if messages %}
+  <div class="container mt-3">
+    {% for m in messages %}
+      <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags }}{% endif %} alert-dismissible fade show shadow-sm" role="alert">
+        {{ m }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<main class="flex-grow-1">
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="tc-footer">
+  <div class="container py-5">
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <a class="navbar-brand d-inline-flex align-items-center gap-2 fw-bold fs-5 mb-3" href="{% url 'store:home' %}">
+          <span class="tc-logo"><i class="bi bi-cpu"></i></span><span>Tech<span class="text-grad">Cart</span></span>
+        </a>
+        <p class="small mb-4" style="max-width: 22rem;">Laptops, monitors, PC parts and accessories from the brands you trust, delivered to your door and paid in cash on arrival.</p>
+        <div class="d-flex gap-2">
+          <a class="tc-social" href="{% url 'store:product_list' %}" aria-label="Shop"><i class="bi bi-bag"></i></a>
+          <a class="tc-social" href="{% url 'store:cart' %}" aria-label="Cart"><i class="bi bi-cart3"></i></a>
+          <a class="tc-social" href="{% url 'store:order_list' %}" aria-label="My orders"><i class="bi bi-receipt"></i></a>
+        </div>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h3>Shop</h3>
+        <ul>
+          {% for label, cats in nav_groups|slice:":1" %}{% for c in cats %}<li><a href="{% url 'store:category' c.slug %}">{{ c.name }}</a></li>{% endfor %}{% endfor %}
+          <li><a href="{% url 'store:pc_builder' %}">Build a PC</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h3>Account</h3>
+        <ul>
+          {% if user.is_authenticated %}
+            <li><a href="{% url 'store:order_list' %}">My orders</a></li>
+            <li><a href="{% url 'store:cart' %}">My cart</a></li>
+          {% else %}
+            <li><a href="{% url 'accounts:login' %}">Log in</a></li>
+            <li><a href="{% url 'accounts:register' %}">Create account</a></li>
+          {% endif %}
+          <li><a href="{% url 'store:cart' %}">Checkout</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h3>Help</h3>
+        <ul>
+          <li><a href="{% url 'store:order_list' %}">Track an order</a></li>
+          <li><a href="{% url 'store:product_list' %}">Browse all products</a></li>
+          {% if user.is_staff %}<li><a href="{% url 'dashboard:overview' %}">Admin dashboard</a></li>{% endif %}
+        </ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h3>Our promise</h3>
+        <ul>
+          <li><i class="bi bi-qr-code-scan me-2"></i>KHQR or cash on delivery</li>
+          <li><i class="bi bi-shield-check me-2"></i>Official warranty</li>
+          <li><i class="bi bi-arrow-repeat me-2"></i>7-day returns</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="tc-footer-bottom">
+    <div class="container py-3 d-flex flex-column flex-md-row justify-content-between gap-2">
+      <span>© TechCart. All rights reserved.</span>
+      <span>Prices in USD · Free delivery</span>
+    </div>
+  </div>
+</footer>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="tc-toast" class="toast align-items-center border-0" role="status" aria-live="polite" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body fw-semibold" id="tc-toast-body"></div>
+      <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'js/app.js' %}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

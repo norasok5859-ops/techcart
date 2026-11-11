@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Create account{% endblock %}
+{% block content %}
+<div class="tc-auth">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-xl-10">
+        <div class="tc-auth-card">
+          <div class="row g-0">
+            <div class="col-lg-5 d-none d-lg-block">
+              {% include "accounts/_auth_side.html" with side_title="Your desk upgrade starts here." side_text="Create a free account in under a minute and start building your setup." %}
+            </div>
+            <div class="col-lg-7">
+              <div class="tc-auth-form">
+                <h1 class="h2 fw-bold mb-1">Create your account</h1>
+                <p class="text-muted mb-4">It takes less than a minute.</p>
+                <form method="post" novalidate>
+                  {% csrf_token %}
+                  <div class="row g-3">
+                    {% for field in form %}
+                      <div class="{% if field.name == 'first_name' or field.name == 'last_name' or field.name == 'password1' or field.name == 'password2' %}col-sm-6{% else %}col-12{% endif %}">
+                        <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|join:" " }}</div>
+                        {% elif field.help_text and field.name != "password1" and field.name != "password2" %}<div class="form-text">{{ field.help_text|safe }}</div>{% endif %}
+                        {% if field.name == "password1" and not field.errors %}<div class="form-text">At least 8 characters, not only numbers.</div>{% endif %}
+                      </div>
+                    {% endfor %}
+                  </div>
+                  <button class="btn btn-accent btn-lg w-100 mt-4" type="submit">Create account <i class="bi bi-arrow-right ms-1"></i></button>
+                </form>
+                <p class="text-center mt-4 mb-0">Already have an account? <a href="{% url 'accounts:login' %}" class="fw-semibold">Log in</a></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

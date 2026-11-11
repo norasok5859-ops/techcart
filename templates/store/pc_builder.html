@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Build your PC{% endblock %}
+{% block content %}
+<section class="tc-builder-hero">
+  <div class="container py-5">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb small mb-3">
+        <li class="breadcrumb-item"><a href="{% url 'store:home' %}">Home</a></li>
+        <li class="breadcrumb-item active text-white-50" aria-current="page">PC builder</li>
+      </ol>
+    </nav>
+    <div class="row align-items-end g-4">
+      <div class="col-lg-7">
+        <span class="tc-eyebrow mb-3"><span class="pill">Live check</span>Compatibility &amp; power, checked as you go</span>
+        <h1 class="display-5 fw-bold text-white mb-2">Build your PC</h1>
+        <p class="lead mb-0" style="color:#aab1d1">Choose one part for each step. Parts that don't fit your choices are marked, and the summary tells you if anything is wrong before you buy.</p>
+      </div>
+      <div class="col-lg-5">
+        <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
+          <span class="small text-white-50 w-100 text-lg-end mb-1">Quick start:</span>
+          <button type="button" class="btn btn-glass js-preset" data-preset="budget"><i class="bi bi-piggy-bank me-1"></i>Budget gaming</button>
+          <button type="button" class="btn btn-glass js-preset" data-preset="highend"><i class="bi bi-rocket-takeoff me-1"></i>High-end</button>
+          <button type="button" class="btn btn-glass" id="build-reset"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="container py-4">
+  {% csrf_token %}
+  <div class="row g-4">
+    <div class="col-lg-8">
+      {% for s in slots %}
+        <section class="tc-slot card mb-3" data-slot="{{ s.slot }}" id="slot-{{ s.slot }}">
+          <div class="tc-slot-head">
+            <span class="tc-slot-num">{{ forloop.counter }}</span>
+            <span class="tc-slot-icon"><i class="bi bi-{{ s.icon }}"></i></span>
+            <div class="flex-grow-1">
+              <h2 class="h6 fw-bold mb-0">{{ s.label }} {% if not s.required %}<span class="badge bg-accent-soft text-accent ms-1">Optional</span>{% endif %}</h2>
+              <div class="small text-muted js-slot-choice">Not chosen yet</div>
+            </div>
+          </div>
+          <div class="tc-parts">
+            {% if not s.required %}
+              <input class="btn-check" type="radio" name="slot-{{ s.slot }}" id="p-{{ s.slot }}-none" value="" checked>
+              <label class="tc-part tc-part-none" for="p-{{ s.slot }}-none">
+                <span class="tc-part-img d-flex align-items-center justify-content-center"><i class="bi bi-slash-circle fs-2 text-muted"></i></span>
+                <span class="tc-part-name">No graphics card</span>
+                <span class="tc-part-spec">Use the processor's built-in graphics</span>
+                <span class="tc-part-price">$0.00</span>
+              </label>
+            {% endif %}
+            {% for p in s.parts %}
+              <input class="btn-check" type="radio" name="slot-{{ s.slot }}" id="p-{{ p.id }}" value="{{ p.id }}"
+                     data-name="{{ p.name }}" data-price="{{ p.price }}"
+                     data-socket="{{ p.compat.socket|default:'' }}" data-memory="{{ p.compat.memory_type|default:'' }}"
+                     data-form="{{ p.compat.form_factor|default:'' }}" data-forms="{{ p.compat.form_factors|join:',' }}"
+                     data-watts="{{ p.compat.wattage|default:'' }}"
+                     {% if not p.in_stock %}disabled{% endif %}>
+              <label class="tc-part" for="p-{{ p.id }}">
+                <span class="tc-part-img">{% with product=p %}{% include "store/_product_image.html" %}{% endwith %}</span>
+                <span class="tc-part-name">{{ p.name }}</span>
+                <span class="tc-part-spec">{{ p.summary }}</span>
+                <span class="tc-part-price">{{ p.price|money }}{% if not p.in_stock %} · <span class="text-danger">Out of stock</span>{% endif %}</span>
+                <span class="tc-part-flag"><i class="bi bi-exclamation-triangle-fill me-1"></i><span></span></span>
+                <span class="tc-part-check"><i class="bi bi-check-lg"></i></span>
+              </label>
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+
+    <div class="col-lg-4">
+      <aside class="card tc-card tc-summary p-4" id="build-summary">
+        <h2 class="h5 fw-bold mb-3"><i class="bi bi-pc-display me-2 text-accent"></i>Your build</h2>
+        <ul class="list-unstyled tc-build-list mb-3">
+          {% for s in slots %}
+            <li data-summary="{{ s.slot }}">
+              <span class="text-muted small">{{ s.label }}</span>
+              <span class="tc-build-part">—</span>
+              <span class="tc-build-price"></span>
+            </li>
+          {% endfor %}
+        </ul>
+
+        <div class="tc-power mb-3">
+          <div class="d-flex justify-content-between small fw-semibold mb-1">
+            <span><i class="bi bi-lightning-charge-fill text-warning me-1"></i>Estimated power</span>
+            <span id="build-watts">—</span>
+          </div>
+          <div class="progress" style="height:8px" role="progressbar" aria-label="Power use compared to power supply">
+            <div class="progress-bar" id="build-power-bar" style="width:0%"></div>
+          </div>
+          <div class="small text-muted mt-1" id="build-power-note">Choose a processor and power supply.</div>
+        </div>
+
+        <div id="build-issues" class="mb-3"></div>
+
+        <div class="d-flex justify-content-between align-items-end border-top pt-3 mb-3">
+          <span class="fw-semibold">Total</span>
+          <span class="tc-price fs-3" id="build-total">$0.00</span>
+        </div>
+        <button class="btn btn-accent btn-lg w-100" id="build-add" disabled><i class="bi bi-bag-plus me-1"></i>Add build to cart</button>
+        <div class="small text-muted text-center mt-2" id="build-hint">Choose all required parts to continue.</div>
+      </aside>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/pc_builder.js' %}"></script>
+{% endblock %}

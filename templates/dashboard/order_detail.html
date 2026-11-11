@@ -1,0 +1,44 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Order {{ order.number }}{% endblock %}
+{% block dashboard %}
+<a href="{% url 'dashboard:orders' %}" class="small"><i class="bi bi-arrow-left"></i> Orders</a>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-0">Order {{ order.number }}</h1>
+    <div class="text-muted small">Placed {{ order.created_at|date:"d M Y, H:i" }} by @{{ order.user.username }}</div>
+  </div>
+  <span class="badge fs-6 text-bg-{{ order.status_color }}">{{ order.get_status_display }}</span>
+</div>
+<div class="row g-4">
+  <div class="col-lg-8"><div class="card tc-card p-3">{% include "store/_order_items.html" %}</div></div>
+  <div class="col-lg-4">
+    <div class="card tc-card p-4 mb-3">
+      <h2 class="h6 fw-bold">Update status</h2>
+      {% if order.status == "cancelled" %}
+        <p class="small text-muted mb-0">This order was cancelled and its items were returned to stock.</p>
+      {% else %}
+        <form method="post" class="d-flex gap-2">
+          {% csrf_token %}{{ form.status }}
+          <button class="btn btn-accent" type="submit">Save</button>
+        </form>
+        <div class="form-text">Cancelling returns the items to stock.</div>
+      {% endif %}
+    </div>
+    <div class="card tc-card p-4 mb-3">
+      <h2 class="h6 fw-bold">Payment</h2>
+      <p class="mb-1">{{ order.get_payment_method_display }} · <span class="badge text-bg-{{ order.payment_color }}">{{ order.get_payment_status_display }}</span></p>
+      {% if order.paid_at %}<p class="small text-muted mb-1">Paid {{ order.paid_at|date:"d M Y, H:i" }}</p>{% endif %}
+      {% if order.payment_ref %}<p class="small mb-2">Ref <code>{{ order.payment_ref }}</code></p>{% endif %}
+      {% if order.payment_method == "cod" and not order.is_paid %}<p class="small text-muted mb-2">Marked paid automatically when set to Delivered.</p>{% endif %}
+      <a href="{% url 'store:order_receipt' order.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-receipt me-1"></i>Receipt / invoice</a>
+    </div>
+    <div class="card tc-card p-4">
+      <h2 class="h6 fw-bold">Delivery</h2>
+      <p class="mb-1">{{ order.full_name }}</p>
+      <p class="mb-1 text-muted">{{ order.phone }}</p>
+      <p class="text-muted mb-2">{{ order.address|linebreaksbr }}</p>
+      {% if order.note %}<p class="small mb-0"><i class="bi bi-chat-left-text me-1"></i>{{ order.note }}</p>{% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

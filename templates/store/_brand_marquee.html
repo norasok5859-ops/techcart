@@ -1,0 +1,18 @@
+{% comment %}
+  Slow, pausable brand rail. Params: brands (list of names), reverse (bool), title (optional), tone ("light"|"soft").
+  Each brand links to a search for its products.
+{% endcomment %}
+<div class="tc-brands tc-brands-{{ tone|default:'light' }}" aria-label="{{ title|default:'Brands we carry' }}">
+  {% if title %}<div class="container"><div class="tc-brands-title"><span>{{ title }}</span></div></div>{% endif %}
+  <div class="tc-brands-viewport">
+    <div class="tc-brands-track{% if reverse %} is-reverse{% endif %}" style="--n: {{ brands|length }}">
+      {% for pass in "ab" %}
+        {% for b in brands %}
+          <a class="tc-brand" href="{% url 'store:product_list' %}?q={{ b|urlencode }}" {% if pass == "b" %}aria-hidden="true" tabindex="-1"{% endif %}>
+            <span class="tc-brand-mark">{{ b|slice:":1"|upper }}</span><span class="tc-brand-name">{{ b }}</span>
+          </a>
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+</div>

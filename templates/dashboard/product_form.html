@@ -1,0 +1,28 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}{% if product %}Edit product{% else %}New product{% endif %}{% endblock %}
+{% block dashboard %}
+<a href="{% url 'dashboard:products' %}" class="small"><i class="bi bi-arrow-left"></i> Products</a>
+<h1 class="h3 fw-bold mt-2 mb-4">{% if product %}Edit “{{ product.name }}”{% else %}New product{% endif %}</h1>
+<form method="post" enctype="multipart/form-data" class="card tc-card p-4" novalidate>
+  {% csrf_token %}
+  <div class="row g-3">
+    {% for field in form %}
+      {% if field.name == "is_featured" or field.name == "is_active" %}
+        <div class="col-sm-6"><div class="form-check form-switch">{{ field }}
+          <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div></div>
+      {% else %}
+        <div class="{% if field.name == 'description' or field.name == 'name' %}col-12{% else %}col-sm-6{% endif %}">
+          <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+          {{ field }}
+          {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|join:" " }}</div>{% endif %}
+          {% if field.name == "image" %}<div class="form-text">Optional. Without an image, the category icon is shown.</div>{% endif %}
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <div class="d-flex gap-2 mt-4">
+    <button class="btn btn-accent" type="submit"><i class="bi bi-save me-1"></i>Save product</button>
+    <a href="{% url 'dashboard:products' %}" class="btn btn-outline-secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800">
+<defs>
+<radialGradient id="bg" cx="0.5" cy="0.38" r="0.8"><stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#cbd5e1"/></radialGradient>
+<radialGradient id="floor" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#0f172a" stop-opacity="0.3"/><stop offset="1" stop-color="#0f172a" stop-opacity="0"/></radialGradient>
+<filter id="blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="16"/></filter>
+<filter id="lift" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#0f172a" flood-opacity=".18"/></filter>
+<linearGradient id="alu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f8fafc"/><stop offset="0.5" stop-color="#cbd5e1"/><stop offset="1" stop-color="#94a3b8"/></linearGradient><linearGradient id="gray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#64748b"/><stop offset="1" stop-color="#334155"/></linearGradient><linearGradient id="silver" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1f5f9"/><stop offset="1" stop-color="#94a3b8"/></linearGradient><linearGradient id="graphite" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#475569"/><stop offset="1" stop-color="#0f172a"/></linearGradient>
+</defs>
+<rect width="800" height="800" fill="url(#bg)"/>
+<circle cx="400" cy="380" r="275" fill="#ffffff" opacity=".45"/>
+<circle cx="665" cy="135" r="72" fill="#64748b" opacity=".12"/>
+<circle cx="125" cy="690" r="46" fill="#64748b" opacity=".10"/>
+<ellipse cx="400" cy="628" rx="260" ry="30" fill="url(#floor)"/>
+<g filter="url(#lift)"><rect x="215" y="604" width="390" height="20" rx="10" fill="url(#alu)"/><line x1="322" y1="612" x2="548" y2="432" stroke="#94a3b8" stroke-width="28" stroke-linecap="round"/><line x1="322" y1="612" x2="548" y2="432" stroke="#e2e8f0" stroke-width="14" stroke-linecap="round"/><circle cx="322" cy="612" r="16" fill="#64748b"/><circle cx="548" cy="432" r="14" fill="#64748b"/><g transform="rotate(-15 400 458)"><rect x="168" y="452" width="452" height="16" rx="8" fill="url(#alu)"/><rect x="168" y="424" width="14" height="42" rx="6" fill="url(#alu)"/><rect x="190" y="430" width="420" height="22" rx="7" fill="url(#gray)"/><rect x="205" y="428" width="380" height="4" rx="2" fill="#94a3b8"/><polygon points="596,436 614,436 670,136 652,136" fill="url(#gray)"/><line x1="598" y1="436" x2="654" y2="136" stroke="#0f172a" stroke-width="3"/></g></g>
+</svg>

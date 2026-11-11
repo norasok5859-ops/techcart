@@ -1,0 +1,7 @@
+{% if product.image %}
+  <img src="{{ product.image.url }}" alt="{{ product.name }}" class="tc-thumb-img" loading="lazy">
+{% else %}
+  <div class="tc-thumb tc-thumb-{{ product.category.slug }}" aria-hidden="true">
+    <i class="bi bi-{{ product.category.icon }}"></i>
+  </div>
+{% endif %}

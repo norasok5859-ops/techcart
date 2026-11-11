@@ -1,0 +1,20 @@
+<article class="tc-card tc-product h-100 d-flex flex-column">
+  <a href="{{ product.get_absolute_url }}" class="tc-card-media" tabindex="-1" aria-hidden="true">
+    {% include "store/_product_image.html" %}
+    {% if not product.in_stock %}<span class="badge bg-dark tc-corner">Out of stock</span>
+    {% elif product.stock <= 5 %}<span class="badge bg-warning text-dark tc-corner">Only {{ product.stock }} left</span>
+    {% elif product.is_featured %}<span class="badge bg-accent tc-corner"><i class="bi bi-star-fill me-1"></i>Featured</span>{% endif %}
+  </a>
+  <div class="tc-card-body">
+    <div class="tc-card-meta"><span>{{ product.brand }}</span><span class="dot"></span><span>{{ product.category.name }}</span></div>
+    <h3 class="tc-card-title{% if product.summary %} mb-1{% endif %}"><a href="{{ product.get_absolute_url }}">{{ product.name }}</a></h3>
+    {% if product.summary %}<div class="tc-card-spec">{{ product.summary }}</div>{% endif %}
+    <div class="tc-card-foot">
+      <span class="tc-price">{{ product.price|money }}</span>
+      <button class="tc-add js-add-to-cart" data-product-id="{{ product.id }}"
+              {% if not product.in_stock %}disabled{% endif %} aria-label="Add {{ product.name }} to cart">
+        <i class="bi bi-bag-plus"></i> Add
+      </button>
+    </div>
+  </div>
+</article>

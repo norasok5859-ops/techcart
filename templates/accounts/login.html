@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<div class="tc-auth">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-xl-10">
+        <div class="tc-auth-card">
+          <div class="row g-0">
+            <div class="col-lg-5 d-none d-lg-block">
+              {% include "accounts/_auth_side.html" with side_title="Welcome back to your setup." side_text="Log in to pick up where you left off: your cart, your orders, your gear." %}
+            </div>
+            <div class="col-lg-7">
+              <div class="tc-auth-form">
+                <h1 class="h2 fw-bold mb-1">Log in</h1>
+                <p class="text-muted mb-4">Use your username or email address.</p>
+
+                <form method="post" novalidate id="login-form">
+                  {% csrf_token %}
+                  {% if form.non_field_errors %}
+                    <div class="alert alert-danger small"><i class="bi bi-exclamation-triangle me-1"></i>Wrong username/email or password. Please try again.</div>
+                  {% endif %}
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold" for="id_username">{{ form.username.label }}</label>
+                    {{ form.username }}
+                  </div>
+                  <div class="mb-4">
+                    <label class="form-label fw-semibold" for="id_password">Password</label>
+                    <div class="position-relative">
+                      {{ form.password }}
+                      <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-muted" id="toggle-pw" aria-label="Show password"><i class="bi bi-eye"></i></button>
+                    </div>
+                  </div>
+                  <input type="hidden" name="next" value="{{ next }}">
+                  <button class="btn btn-accent btn-lg w-100" type="submit">Log in <i class="bi bi-arrow-right ms-1"></i></button>
+                </form>
+
+                {% if demo_accounts %}
+                  <div class="tc-demo-title">Or try a demo account</div>
+                  <div class="d-grid gap-2">
+                    {% for a in demo_accounts %}
+                      <button type="button" class="tc-demo js-demo-login" data-username="{{ a.username }}" data-password="{{ a.password }}"
+                              title="Log in as {{ a.username }}: {{ a.note }}">
+                        <span class="tc-avatar">{{ a.username|slice:":1" }}</span>
+                        <span class="tc-demo-info">
+                          <span class="who">{{ a.username|capfirst }}
+                            <span class="badge {% if a.role == 'Admin' %}text-bg-dark{% else %}bg-accent-soft text-accent{% endif %} ms-1">{{ a.role }}</span>
+                          </span>
+                          <span class="cred">
+                            <span>Username: <b>{{ a.username }}</b></span>
+                            <span>Password: <b>{{ a.password }}</b></span>
+                          </span>
+                        </span>
+                        <span class="tc-demo-go">Log in <i class="bi bi-arrow-right"></i></span>
+                      </button>
+                    {% endfor %}
+                  </div>
+                  <p class="small text-muted mt-3 mb-0"><i class="bi bi-info-circle me-1"></i>Click any account to log in automatically.</p>
+                {% endif %}
+
+                <p class="text-center mt-4 mb-0">New to TechCart? <a href="{% url 'accounts:register' %}" class="fw-semibold">Create an account</a></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  (function () {
+    const form = document.getElementById("login-form");
+    const demos = document.querySelectorAll(".js-demo-login");
+
+    // Pre-fill the form with the first customer account, so "Log in" works straight away.
+    const firstCustomer = [...demos].find((b) => b.dataset.username !== "admin") || demos[0];
+    if (firstCustomer && !form.username.value && !form.querySelector(".alert-danger")) {
+      form.username.value = firstCustomer.dataset.username;
+      form.password.value = firstCustomer.dataset.password;
+    }
+
+    // One click on an account: show its username and password in the form, then log in.
+    demos.forEach((btn) => btn.addEventListener("click", () => {
+      demos.forEach((b) => (b.disabled = true));
+      form.username.value = btn.dataset.username;
+      form.password.value = btn.dataset.password;
+      btn.querySelector(".tc-demo-go").innerHTML = '<span class="spinner-border spinner-border-sm"></span> Logging in';
+      setTimeout(() => form.submit(), 250);
+    }));
+    const pw = document.getElementById("id_password");
+    document.getElementById("toggle-pw").addEventListener("click", (e) => {
+      const show = pw.type === "password";
+      pw.type = show ? "text" : "password";
+      e.currentTarget.innerHTML = show ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+    });
+  })();
+</script>
+{% endblock %}

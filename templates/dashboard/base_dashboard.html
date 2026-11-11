@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid container-xl py-4">
+  <div class="row g-4">
+    <aside class="col-lg-2">
+      <div class="small text-uppercase text-muted fw-semibold mb-2">Admin</div>
+      <nav class="nav nav-pills flex-lg-column gap-1 tc-dash-nav">
+        {% with url=request.resolver_match.url_name %}
+        <a class="nav-link {% if url == 'overview' %}active{% endif %}" href="{% url 'dashboard:overview' %}"><i class="bi bi-speedometer2 me-2"></i>Overview</a>
+        <a class="nav-link {% if 'product' in url %}active{% endif %}" href="{% url 'dashboard:products' %}"><i class="bi bi-box-seam me-2"></i>Products</a>
+        <a class="nav-link {% if 'order' in url %}active{% endif %}" href="{% url 'dashboard:orders' %}"><i class="bi bi-receipt me-2"></i>Orders</a>
+        <a class="nav-link" href="/api/docs/"><i class="bi bi-braces me-2"></i>API docs</a>
+        <a class="nav-link" href="{% url 'admin:index' %}"><i class="bi bi-gear me-2"></i>Django admin</a>
+        {% endwith %}
+      </nav>
+    </aside>
+    <section class="col-lg-10">{% block dashboard %}{% endblock %}</section>
+  </div>
+</div>
+{% endblock %}

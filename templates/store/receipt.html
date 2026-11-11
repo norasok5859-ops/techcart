@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Receipt {{ receipt.receipt_number }}{% endblock %}
+{% block content %}
+<div class="container py-4 py-md-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4 no-print" style="max-width:760px;margin-inline:auto">
+    <a href="{% url 'store:order_detail' order.pk %}" class="small"><i class="bi bi-arrow-left"></i> Back to order</a>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-file-earmark-pdf me-1"></i>Save as PDF</button>
+      <button class="btn btn-accent" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print receipt</button>
+    </div>
+  </div>
+
+  <article class="tc-receipt">
+    <header class="tc-receipt-head">
+      <div>
+        <div class="d-flex align-items-center gap-2 fw-bold fs-4"><span class="tc-logo"><i class="bi bi-cpu"></i></span>TechCart</div>
+        <div class="small text-muted mt-2">Laptops · PC parts · Accessories<br>Phnom Penh, Cambodia</div>
+      </div>
+      <div class="text-end">
+        <div class="tc-receipt-title">Receipt</div>
+        <div class="fw-semibold">{{ receipt.receipt_number }}</div>
+        <div class="small text-muted">{{ receipt.date|date:"d M Y, H:i" }}</div>
+        {% if order.is_paid %}
+          <div class="tc-stamp tc-stamp-paid"><i class="bi bi-patch-check-fill me-1"></i>Paid</div>
+        {% elif order.payment_status == "refunded" %}
+          <div class="tc-stamp tc-stamp-refunded">Refunded</div>
+        {% else %}
+          <div class="tc-stamp tc-stamp-due">Payment due</div>
+        {% endif %}
+      </div>
+    </header>
+
+    <section class="tc-receipt-meta">
+      <div><span>Billed to</span><strong>{{ receipt.customer }}</strong><br>{{ receipt.phone }}<br>{{ receipt.address|linebreaksbr }}</div>
+      <div><span>Order</span><strong>{{ receipt.order_number }}</strong><br>Placed {{ order.created_at|date:"d M Y" }}<br>Status: {{ order.get_status_display }}</div>
+      <div><span>Payment</span><strong>{{ receipt.payment_method }}</strong><br>
+        {% if order.is_paid %}Paid {{ order.paid_at|date:"d M Y, H:i" }}<br>Ref: <code>{{ order.payment_ref }}</code>
+        {% elif order.payment_status == "refunded" %}Refunded after cancellation
+        {% elif order.payment_method == "cod" %}Pay the courier on delivery
+        {% else %}Waiting for KHQR payment{% endif %}</div>
+    </section>
+
+    <table class="table tc-receipt-table">
+      <thead><tr><th>Item</th><th class="text-end">Price</th><th class="text-center">Qty</th><th class="text-end">Amount</th></tr></thead>
+      <tbody>
+        {% for item in order.items.all %}
+          <tr><td>{{ item.product_name }}</td><td class="text-end">{{ item.price|money }}</td><td class="text-center">{{ item.quantity }}</td><td class="text-end fw-semibold">{{ item.subtotal|money }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="tc-receipt-bottom">
+      <div class="tc-receipt-verify">
+        <div class="tc-receipt-qr">{{ verify_qr|safe }}</div>
+        <div class="small text-muted">Scan to view this receipt online.<br>Keep it for warranty claims.</div>
+      </div>
+      <dl class="tc-receipt-totals">
+        <div><dt>Subtotal</dt><dd>{{ order.total|money }}</dd></div>
+        <div><dt>Delivery</dt><dd>Free</dd></div>
+        <div class="grand"><dt>Total (USD)</dt><dd>{{ order.total|money }}</dd></div>
+        {% if order.is_paid %}<div class="paid"><dt>Amount paid</dt><dd>{{ order.total|money }}</dd></div>{% endif %}
+      </dl>
+    </div>
+
+    <footer class="tc-receipt-foot">Thank you for shopping with TechCart! · Genuine products with official warranty · 7-day returns</footer>
+  </article>
+</div>
+{% endblock %}

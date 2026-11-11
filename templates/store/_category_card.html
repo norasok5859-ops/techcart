@@ -1,0 +1,10 @@
+<a href="{% url 'store:category' c.slug %}" class="tc-catcard">
+  <div class="tc-catcard-media">
+    {% if c.cover %}<img src="{{ c.cover.image.url }}" alt="" loading="lazy">
+    {% else %}<div class="tc-thumb tc-thumb-{{ c.slug }}"><i class="bi bi-{{ c.icon }}"></i></div>{% endif %}
+  </div>
+  <div class="tc-catcard-body">
+    <span><strong>{{ c.name }}</strong><small>{{ c.product_count }} product{{ c.product_count|pluralize }}</small></span>
+    <span class="tc-catcard-go"><i class="bi bi-arrow-up-right"></i></span>
+  </div>
+</a>

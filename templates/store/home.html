@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Laptops, PC parts &amp; accessories{% endblock %}
+{% block content %}
+
+{# ---------------- hero ---------------- #}
+<section class="tc-hero">
+  <div class="container py-5">
+    <div class="row align-items-center g-5 py-lg-4">
+      <div class="col-lg-6">
+        <span class="tc-eyebrow mb-4"><span class="pill">New</span>Build your own PC, checked part by part</span>
+        <h1 class="mb-4">Laptops and PCs that <span class="text-grad">keep up with you.</span></h1>
+        <p class="lead mb-4">Laptops, gaming rigs, MacBooks, monitors and every PC part from the brands you trust, delivered free. Pay by KHQR or cash on delivery.</p>
+        <div class="d-flex gap-2 flex-wrap mb-5">
+          <a href="{% url 'store:category' 'laptops' %}" class="btn btn-accent btn-lg">Shop laptops <i class="bi bi-arrow-right ms-1"></i></a>
+          <a href="{% url 'store:pc_builder' %}" class="btn btn-glass btn-lg"><i class="bi bi-tools me-1"></i>Build a PC</a>
+        </div>
+        <div class="tc-hero-stats">
+          <div><strong>{{ product_total }}+</strong><span>Products in stock</span></div>
+          <div><strong>{{ brands|length }}</strong><span>Top brands</span></div>
+          <div><strong>$0</strong><span>Delivery fee</span></div>
+        </div>
+      </div>
+      <div class="col-lg-6 d-none d-lg-block">
+        {% if hero_main %}
+        <div class="tc-showcase">
+          <a href="{{ hero_main.get_absolute_url }}" class="tc-showcase-main" aria-label="{{ hero_main.name }}">
+            <img src="{{ hero_main.image.url }}" alt="{{ hero_main.name }}">
+          </a>
+          {% for p in hero_side %}
+            <a href="{{ p.get_absolute_url }}" class="tc-float tc-float-{{ forloop.counter }}">
+              <img src="{{ p.image.url }}" alt="">
+              <span><span class="t d-block">{{ p.name }}</span><span class="p">{{ p.price|money }}</span></span>
+            </a>
+          {% endfor %}
+          <div class="tc-float-chip"><i class="bi bi-patch-check-fill me-1"></i>{{ hero_main.name }} · {{ hero_main.price|money }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ---------------- brands ---------------- #}
+{% if brands %}{% include "store/_brand_marquee.html" with brands=brands %}{% endif %}
+
+{# ---------------- computer categories ---------------- #}
+<section id="categories" class="tc-section container">
+  <div class="tc-section-head">
+    <div>
+      <div class="tc-kicker">Shop by category</div>
+      <h2 class="tc-section-title">Find your next computer</h2>
+    </div>
+    <a href="{% url 'store:product_list' %}" class="tc-link-arrow">All products <i class="bi bi-arrow-right"></i></a>
+  </div>
+  <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3">
+    {% for c in computer_categories %}<div class="col">{% include "store/_category_card.html" %}</div>{% endfor %}
+  </div>
+</section>
+
+{# ---------------- featured computers ---------------- #}
+{% if featured_computers %}
+<section class="tc-section container">
+  <div class="tc-section-head">
+    <div>
+      <div class="tc-kicker">Top picks</div>
+      <h2 class="tc-section-title">Featured laptops &amp; monitors</h2>
+    </div>
+    <a href="{% url 'store:category' 'laptops' %}" class="tc-link-arrow">All laptops <i class="bi bi-arrow-right"></i></a>
+  </div>
+  <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3">
+    {% for product in featured_computers %}<div class="col">{% include "store/_product_card.html" %}</div>{% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ---------------- PC builder ---------------- #}
+<section class="tc-section container">
+  <div class="tc-builder-band">
+    <div class="row align-items-center g-5 position-relative" style="z-index:1">
+      <div class="col-lg-6">
+        <div class="tc-kicker" style="color:#a59cfb">PC builder</div>
+        <h2 class="mb-3">Build your dream PC, without the guesswork.</h2>
+        <p class="mb-4" style="color:#aab1d1">Pick a processor, motherboard, memory, graphics card, storage, power supply and case. We check that every part fits and that your power supply is big enough, then add the whole build to your cart.</p>
+        <ul class="tc-builder-steps mb-4">
+          <li><span>1</span>Choose your parts</li>
+          <li><span>2</span>See compatibility &amp; power live</li>
+          <li><span>3</span>Add the full build to cart</li>
+        </ul>
+        <a href="{% url 'store:pc_builder' %}" class="btn btn-accent btn-lg"><i class="bi bi-tools me-2"></i>Start building</a>
+      </div>
+      <div class="col-lg-6">
+        <div class="tc-promo-imgs">
+          {% for p in builder_parts %}<a href="{{ p.get_absolute_url }}" aria-label="{{ p.name }}"><img src="{{ p.image.url }}" alt="" loading="lazy"></a>{% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ---------------- components ---------------- #}
+<section class="tc-section container">
+  <div class="tc-section-head">
+    <div>
+      <div class="tc-kicker">PC components</div>
+      <h2 class="tc-section-title">Upgrade or build from scratch</h2>
+    </div>
+    <a href="{% url 'store:pc_builder' %}" class="tc-link-arrow">Open PC builder <i class="bi bi-arrow-right"></i></a>
+  </div>
+  <div class="tc-chip-row mb-4">
+    {% for c in component_categories %}
+      <a href="{% url 'store:category' c.slug %}" class="tc-chip"><i class="bi bi-{{ c.icon }}"></i>{{ c.name }}<small>{{ c.product_count }}</small></a>
+    {% endfor %}
+  </div>
+  <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3">
+    {% for product in featured_components %}<div class="col">{% include "store/_product_card.html" %}</div>{% endfor %}
+  </div>
+</section>
+
+{# ---------------- accessories ---------------- #}
+<section class="tc-section container">
+  <div class="tc-section-head">
+    <div>
+      <div class="tc-kicker">Accessories</div>
+      <h2 class="tc-section-title">Complete your setup</h2>
+    </div>
+  </div>
+  <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3 mb-4">
+    {% for c in accessory_categories %}<div class="col">{% include "store/_category_card.html" %}</div>{% endfor %}
+  </div>
+  {% if accessory_brands %}
+    <div class="tc-brands-inset mb-4">{% include "store/_brand_marquee.html" with brands=accessory_brands reverse=True tone="soft" title="Accessory brands" %}</div>
+  {% endif %}
+  <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3">
+    {% for product in featured_accessories %}<div class="col">{% include "store/_product_card.html" %}</div>{% endfor %}
+  </div>
+</section>
+
+{# ---------------- perks ---------------- #}
+<section class="tc-section container">
+  <div class="row g-3">
+    <div class="col-sm-6 col-lg-3"><div class="tc-perk"><span class="tc-perk-icon"><i class="bi bi-qr-code-scan"></i></span><div><h3>KHQR or cash</h3><p>Scan to pay with any Bakong bank app, or pay cash on delivery.</p></div></div></div>
+    <div class="col-sm-6 col-lg-3"><div class="tc-perk"><span class="tc-perk-icon"><i class="bi bi-truck"></i></span><div><h3>Free delivery</h3><p>Every order ships free, whatever the size.</p></div></div></div>
+    <div class="col-sm-6 col-lg-3"><div class="tc-perk"><span class="tc-perk-icon"><i class="bi bi-shield-check"></i></span><div><h3>Official warranty</h3><p>Genuine products with the brand's warranty.</p></div></div></div>
+    <div class="col-sm-6 col-lg-3"><div class="tc-perk"><span class="tc-perk-icon"><i class="bi bi-arrow-repeat"></i></span><div><h3>7-day returns</h3><p>Changed your mind? Send it back within a week.</p></div></div></div>
+  </div>
+</section>
+{% endblock %}

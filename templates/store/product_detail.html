@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb small">
+      <li class="breadcrumb-item"><a href="{% url 'store:home' %}">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'store:category' product.category.slug %}">{{ product.category.name }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+    </ol>
+  </nav>
+
+  <div class="row g-4 g-lg-5 align-items-start">
+    <div class="col-md-6">
+      <div class="tc-detail-media">{% include "store/_product_image.html" %}</div>
+      {% if product.photo_source %}
+        <div class="tc-credit">
+          {% if product.photo_similar %}<span class="tc-credit-note"><i class="bi bi-info-circle me-1"></i>Photo shows a similar model in the same range.</span>{% endif %}
+          <span>Photo: {{ product.photo_credit }} · <a href="{{ product.photo_source }}" target="_blank" rel="noopener">{{ product.photo_license }}, via Wikimedia Commons</a></span>
+        </div>
+      {% endif %}
+    </div>
+    <div class="col-md-6">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge rounded-pill bg-accent-soft text-accent px-3 py-2"><i class="bi bi-{{ product.category.icon }} me-1"></i>{{ product.category.name }}</span>
+        {% if product.is_featured %}<span class="badge rounded-pill text-bg-warning px-3 py-2"><i class="bi bi-star-fill me-1"></i>Featured</span>{% endif %}
+      </div>
+      <div class="text-muted fw-semibold mb-1">{{ product.brand }}</div>
+      <h1 class="display-6 fw-bold mb-3">{{ product.name }}</h1>
+      <div class="tc-price display-6 mb-3">{{ product.price|money }}</div>
+
+      {% if product.stock > 5 %}
+        <span class="tc-stock-pill bg-success-subtle text-success-emphasis"><i class="bi bi-check-circle-fill"></i>In stock · ready to ship</span>
+      {% elif product.in_stock %}
+        <span class="tc-stock-pill bg-warning-subtle text-warning-emphasis"><i class="bi bi-exclamation-circle-fill"></i>Hurry, only {{ product.stock }} left</span>
+      {% else %}
+        <span class="tc-stock-pill bg-danger-subtle text-danger-emphasis"><i class="bi bi-x-circle-fill"></i>Out of stock</span>
+      {% endif %}
+
+      {% if product.summary %}<div class="fw-semibold mt-3" style="color:#344054"><i class="bi bi-cpu me-1 text-accent"></i>{{ product.summary }}</div>{% endif %}
+      <p class="text-body-secondary fs-6 mt-3" style="line-height:1.75">{{ product.description }}</p>
+      {% if product.category.group == "components" %}
+        <a href="{% url 'store:pc_builder' %}" class="d-inline-flex align-items-center gap-2 fw-semibold text-decoration-none mb-1"><i class="bi bi-tools"></i>Use this part in the PC builder <i class="bi bi-arrow-right"></i></a>
+      {% endif %}
+
+      <div class="d-flex gap-2 align-items-stretch my-4">
+        <div class="input-group tc-qty" style="max-width: 150px;">
+          <button class="btn btn-outline-secondary js-qty-step" type="button" data-step="-1" aria-label="Decrease quantity">−</button>
+          <input id="qty" type="number" class="form-control text-center fw-semibold" value="1" min="1" max="{{ product.stock }}" aria-label="Quantity" {% if not product.in_stock %}disabled{% endif %}>
+          <button class="btn btn-outline-secondary js-qty-step" type="button" data-step="1" aria-label="Increase quantity">+</button>
+        </div>
+        <button class="btn btn-accent btn-lg flex-grow-1 js-add-to-cart" data-product-id="{{ product.id }}" data-qty-input="#qty"
+                {% if not product.in_stock %}disabled{% endif %}>
+          <i class="bi bi-bag-plus me-1"></i>Add to cart
+        </button>
+      </div>
+
+      <ul class="list-unstyled tc-detail-perks mb-0">
+        <li><i class="bi bi-qr-code-scan"></i>KHQR or cash</li>
+        <li><i class="bi bi-shield-check"></i>Official warranty</li>
+        <li><i class="bi bi-arrow-repeat"></i>7-day easy returns</li>
+      </ul>
+    </div>
+  </div>
+
+  {% if product.spec_rows %}
+    <div class="row mt-5">
+      <div class="col-lg-8">
+        <h2 class="h4 fw-bold mb-3">Specifications</h2>
+        <div class="tc-specs">
+          <table class="table mb-0">
+            <tbody>
+              <tr><th scope="row">Brand</th><td>{{ product.brand }}</td></tr>
+              {% for key, value in product.spec_rows %}<tr><th scope="row">{{ key }}</th><td>{{ value }}</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if related %}
+    <div class="tc-section-head mt-5 pt-3">
+      <div>
+        <div class="tc-kicker">You may also like</div>
+        <h2 class="tc-section-title">More {{ product.category.name|lower }}</h2>
+      </div>
+      <a href="{% url 'store:category' product.category.slug %}" class="tc-link-arrow">View all <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <div class="row row-cols-2 row-cols-md-4 g-3">
+      {% for product in related %}<div class="col">{% include "store/_product_card.html" %}</div>{% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

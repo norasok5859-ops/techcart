@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Your cart{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h1 class="h3 fw-bold mb-4">Your cart</h1>
+
+  <div id="cart-empty" class="tc-empty text-center py-5 {% if items %}d-none{% endif %}">
+    <i class="bi bi-bag display-4 text-muted"></i>
+    <h2 class="h5 mt-3">Your cart is empty</h2>
+    <p class="text-muted">Find something you like and add it here.</p>
+    <a href="{% url 'store:product_list' %}" class="btn btn-accent">Start shopping</a>
+  </div>
+
+  {% if items %}
+  <div class="row g-4" id="cart-content">
+    <div class="col-lg-8">
+      <div class="card tc-card">
+        <ul class="list-group list-group-flush">
+          {% for item in items %}
+            <li class="list-group-item py-3 js-cart-row" data-item-id="{{ item.id }}" data-price="{{ item.product.price }}">
+              <div class="d-flex gap-3 align-items-center">
+                <a href="{{ item.product.get_absolute_url }}" class="tc-cart-thumb flex-shrink-0">{% with product=item.product %}{% include "store/_product_image.html" %}{% endwith %}</a>
+                <div class="flex-grow-1">
+                  <a href="{{ item.product.get_absolute_url }}" class="fw-semibold text-reset text-decoration-none">{{ item.product.name }}</a>
+                  <div class="small text-muted">{{ item.product.price|money }} each · {{ item.product.stock }} in stock</div>
+                  <div class="small text-danger js-row-error"></div>
+                </div>
+                <div class="input-group input-group-sm tc-qty" style="width: 120px;">
+                  <button class="btn btn-outline-secondary js-cart-step" data-step="-1" aria-label="Decrease quantity">−</button>
+                  <input type="number" class="form-control text-center js-cart-qty" value="{{ item.quantity }}" min="1" max="{{ item.product.stock }}" aria-label="Quantity">
+                  <button class="btn btn-outline-secondary js-cart-step" data-step="1" aria-label="Increase quantity">+</button>
+                </div>
+                <div class="text-end fw-semibold js-row-subtotal" style="width: 90px;">{{ item.subtotal|money }}</div>
+                <button class="btn btn-link text-danger js-cart-remove" aria-label="Remove {{ item.product.name }}"><i class="bi bi-trash"></i></button>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <a href="{% url 'store:product_list' %}" class="btn btn-link mt-2"><i class="bi bi-arrow-left"></i> Continue shopping</a>
+    </div>
+    <div class="col-lg-4">
+      <div class="card tc-card p-4 tc-summary">
+        <h2 class="h5 fw-bold mb-3">Order summary</h2>
+        <div class="d-flex justify-content-between mb-2"><span>Items</span><span id="cart-count">{{ count }}</span></div>
+        <div class="d-flex justify-content-between mb-2"><span>Delivery</span><span class="text-success">Free</span></div>
+        <hr>
+        <div class="d-flex justify-content-between fs-5 fw-bold mb-3"><span>Total</span><span id="cart-total">{{ total|money }}</span></div>
+        <a href="{% url 'store:checkout' %}" class="btn btn-accent btn-lg w-100">Checkout <i class="bi bi-arrow-right"></i></a>
+        <div class="small text-muted text-center mt-2"><i class="bi bi-cash-coin me-1"></i>Cash on delivery</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block dashboard %}
+<h1 class="h3 fw-bold mb-4">Overview</h1>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3"><div class="card tc-stat p-3 h-100"><div class="text-muted small">Revenue (excl. cancelled)</div><div class="fs-3 fw-bold">{{ stats.revenue|money }}</div></div></div>
+  <div class="col-6 col-xl-3"><div class="card tc-stat p-3 h-100"><div class="text-muted small">Orders</div><div class="fs-3 fw-bold">{{ stats.orders }}</div><div class="small text-warning-emphasis">{{ stats.pending }} pending</div></div></div>
+  <div class="col-6 col-xl-3"><div class="card tc-stat p-3 h-100"><div class="text-muted small">Active products</div><div class="fs-3 fw-bold">{{ stats.products }}</div></div></div>
+  <div class="col-6 col-xl-3"><div class="card tc-stat p-3 h-100"><div class="text-muted small">Low stock (≤ 5)</div><div class="fs-3 fw-bold {% if stats.low_stock %}text-danger{% endif %}">{{ stats.low_stock }}</div></div></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-7">
+    <div class="card tc-card p-3 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h6 fw-bold mb-0">Recent orders</h2>
+        <a href="{% url 'dashboard:orders' %}" class="small">All orders</a>
+      </div>
+      {% if recent_orders %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for o in recent_orders %}
+              <tr><td><a href="{% url 'dashboard:order_detail' o.pk %}">{{ o.number }}</a></td><td>{{ o.full_name }}</td>
+                  <td>{{ o.total|money }}</td><td><span class="badge text-bg-{{ o.status_color }}">{{ o.get_status_display }}</span></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}<p class="text-muted small mb-0">No orders yet.</p>{% endif %}
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        {% for label, n, value in status_counts %}
+          <a href="{% url 'dashboard:orders' %}?status={{ value }}" class="badge rounded-pill text-bg-light border text-decoration-none">{{ label }}: {{ n }}</a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-5">
+    <div class="card tc-card p-3 h-100">
+      <h2 class="h6 fw-bold mb-2">Low stock</h2>
+      {% if low_stock_products %}
+      <ul class="list-group list-group-flush">
+        {% for p in low_stock_products %}
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <span>{{ p.name }}</span>
+            <form method="post" action="{% url 'dashboard:product_stock' p.pk %}" class="d-flex gap-1">
+              {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+              <input type="number" name="stock" min="0" value="{{ p.stock }}" class="form-control form-control-sm" style="width:75px" aria-label="Stock for {{ p.name }}">
+              <button class="btn btn-sm btn-outline-secondary" title="Save stock">Save</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="text-muted small mb-0">All products are well stocked.</p>{% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

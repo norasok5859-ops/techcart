@@ -1,0 +1,12 @@
+<div class="table-responsive">
+  <table class="table align-middle mb-0">
+    <thead><tr><th>Product</th><th class="text-end">Price</th><th class="text-end">Qty</th><th class="text-end">Subtotal</th></tr></thead>
+    <tbody>
+      {% for item in order.items.all %}
+        <tr><td>{{ item.product_name }}</td><td class="text-end">{{ item.price|money }}</td>
+            <td class="text-end">{{ item.quantity }}</td><td class="text-end">{{ item.subtotal|money }}</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot><tr><th colspan="3" class="text-end">Total</th><th class="text-end">{{ order.total|money }}</th></tr></tfoot>
+  </table>
+</div>

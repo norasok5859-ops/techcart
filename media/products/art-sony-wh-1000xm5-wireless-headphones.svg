@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800">
+<defs>
+<radialGradient id="bg" cx="0.5" cy="0.38" r="0.8"><stop offset="0" stop-color="#fff7ed"/><stop offset="1" stop-color="#fed7aa"/></radialGradient>
+<radialGradient id="floor" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#0f172a" stop-opacity="0.3"/><stop offset="1" stop-color="#0f172a" stop-opacity="0"/></radialGradient>
+<filter id="blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="16"/></filter>
+<filter id="lift" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#0f172a" flood-opacity=".18"/></filter>
+<radialGradient id="cup" cx="0.35" cy="0.3" r="0.9"><stop offset="0" stop-color="#4b5563"/><stop offset="1" stop-color="#030712"/></radialGradient>
+</defs>
+<rect width="800" height="800" fill="url(#bg)"/>
+<circle cx="400" cy="380" r="275" fill="#ffffff" opacity=".45"/>
+<circle cx="665" cy="135" r="72" fill="#f97316" opacity=".12"/>
+<circle cx="125" cy="690" r="46" fill="#f97316" opacity=".10"/>
+<ellipse cx="400" cy="640" rx="280" ry="30" fill="url(#floor)"/>
+<g filter="url(#lift)"><path d="M 230,410 C 230,120 570,120 570,410" stroke="#1f2937" stroke-width="30" fill="none" stroke-linecap="round"/><path d="M 254,300 C 280,187 520,187 546,300" stroke="#374151" stroke-width="21" fill="none" stroke-linecap="round"/><rect x="220" y="345" width="20" height="70" rx="8" fill="#d6d3d1"/><path d="M 186,430 Q 230,370 274,430" stroke="#d6d3d1" stroke-width="10" fill="none" stroke-linecap="round"/><ellipse cx="260" cy="500" rx="47" ry="101" fill="#111827"/><ellipse cx="230" cy="500" rx="78" ry="110" fill="url(#cup)"/><ellipse cx="230" cy="500" rx="48" ry="73" stroke="#f59e0b" stroke-width="5" fill="none"/><ellipse cx="207" cy="450" rx="17" ry="15" fill="#ffffff" opacity=".25"/><rect x="560" y="345" width="20" height="70" rx="8" fill="#d6d3d1"/><path d="M 526,430 Q 570,370 614,430" stroke="#d6d3d1" stroke-width="10" fill="none" stroke-linecap="round"/><ellipse cx="540" cy="500" rx="47" ry="101" fill="#111827"/><ellipse cx="570" cy="500" rx="78" ry="110" fill="url(#cup)"/><ellipse cx="570" cy="500" rx="48" ry="73" stroke="#f59e0b" stroke-width="5" fill="none"/><ellipse cx="547" cy="450" rx="17" ry="15" fill="#ffffff" opacity=".25"/><circle cx="570" cy="590" r="5" fill="#f59e0b"/></g>
+</svg>

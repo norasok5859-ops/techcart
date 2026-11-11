@@ -1,0 +1,53 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Manage products{% endblock %}
+{% block dashboard %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 fw-bold mb-0">Products</h1>
+  <div class="d-flex gap-2">
+    <form class="d-flex" method="get"><input class="form-control form-control-sm" type="search" name="q" value="{{ q }}" placeholder="Search products" aria-label="Search products"></form>
+    <a href="{% url 'dashboard:product_create' %}" class="btn btn-sm btn-accent"><i class="bi bi-plus-lg me-1"></i>New product</a>
+  </div>
+</div>
+<div class="card tc-card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead><tr><th>Product</th><th>Category</th><th class="text-end">Price</th><th style="width:170px">Stock</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for p in page.object_list %}
+          <tr>
+            <td><div class="fw-semibold">{{ p.name }}</div><div class="small text-muted">{{ p.brand }}</div></td>
+            <td>{{ p.category.name }}</td>
+            <td class="text-end">{{ p.price|money }}</td>
+            <td>
+              <form method="post" action="{% url 'dashboard:product_stock' p.pk %}" class="d-flex gap-1">
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <input type="number" name="stock" min="0" value="{{ p.stock }}" class="form-control form-control-sm {% if p.stock <= low %}border-danger text-danger{% endif %}" style="width:80px" aria-label="Stock for {{ p.name }}">
+                <button class="btn btn-sm btn-outline-secondary" title="Save stock"><i class="bi bi-check-lg"></i></button>
+              </form>
+            </td>
+            <td>
+              {% if p.is_active %}<span class="badge text-bg-success">Active</span>{% else %}<span class="badge text-bg-secondary">Hidden</span>{% endif %}
+              {% if p.is_featured %}<span class="badge text-bg-info">Featured</span>{% endif %}
+            </td>
+            <td class="text-end text-nowrap">
+              <a href="{% url 'dashboard:product_edit' p.pk %}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+              <form method="post" action="{% url 'dashboard:product_delete' p.pk %}" class="d-inline" onsubmit="return confirm('Delete {{ p.name|escapejs }}? This cannot be undone.');">
+                {% csrf_token %}<button class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-4">No products found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% if page.has_other_pages %}
+<nav class="mt-3"><ul class="pagination justify-content-center">
+  {% if page.has_previous %}<li class="page-item"><a class="page-link" href="?q={{ q }}&page={{ page.previous_page_number }}">Previous</a></li>{% endif %}
+  <li class="page-item disabled"><span class="page-link">Page {{ page.number }} of {{ page.paginator.num_pages }}</span></li>
+  {% if page.has_next %}<li class="page-item"><a class="page-link" href="?q={{ q }}&page={{ page.next_page_number }}">Next</a></li>{% endif %}
+</ul></nav>
+{% endif %}
+{% endblock %}

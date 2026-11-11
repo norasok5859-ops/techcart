@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Order {{ order.number }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <a href="{% url 'store:order_list' %}" class="small"><i class="bi bi-arrow-left"></i> My orders</a>
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 mb-4">
+    <div>
+      <h1 class="h3 fw-bold mb-0">Order {{ order.number }}</h1>
+      <div class="text-muted small">Placed {{ order.created_at|date:"d M Y, H:i" }}</div>
+    </div>
+    <span class="badge fs-6 text-bg-{{ order.status_color }}">{{ order.get_status_display }}</span>
+  </div>
+
+  {% if order.status != "cancelled" %}
+  <div class="tc-steps mb-4">
+    {% for label, done in steps %}
+      <div class="tc-step {% if done %}done{% endif %}"><span class="tc-step-dot">{% if done %}<i class="bi bi-check"></i>{% else %}{{ forloop.counter }}{% endif %}</span>{{ label }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-4">
+    <div class="col-lg-8"><div class="card tc-card p-3">{% include "store/_order_items.html" %}</div></div>
+    <div class="col-lg-4">
+      <div class="card tc-card p-4">
+        <h2 class="h6 fw-bold">Delivery to</h2>
+        <p class="mb-1">{{ order.full_name }}</p>
+        <p class="mb-1 text-muted">{{ order.phone }}</p>
+        <p class="text-muted">{{ order.address|linebreaksbr }}</p>
+        {% if order.note %}<p class="small"><i class="bi bi-chat-left-text me-1"></i>{{ order.note }}</p>{% endif %}
+        <h2 class="h6 fw-bold">Payment</h2>
+        <p class="text-muted mb-2">{{ order.get_payment_method_display }} · {{ order.total|money }}</p>
+        <p><span class="badge text-bg-{{ order.payment_color }}">{{ order.get_payment_status_display }}</span>
+          {% if order.payment_ref %}<span class="small text-muted ms-1">Ref {{ order.payment_ref }}</span>{% endif %}</p>
+        {% if order.awaiting_qr_payment %}
+          <a href="{% url 'store:order_pay' order.pk %}" class="btn btn-accent w-100 mb-2"><i class="bi bi-qr-code-scan me-1"></i>Pay now with KHQR</a>
+        {% endif %}
+        <a href="{% url 'store:order_receipt' order.pk %}" class="btn btn-outline-secondary w-100 mb-2"><i class="bi bi-receipt me-1"></i>{% if order.is_paid %}View receipt{% else %}View invoice{% endif %}</a>
+        {% if order.status == "pending" %}
+          <form method="post" action="{% url 'store:order_cancel' order.pk %}" onsubmit="return confirm('Cancel this order?');">
+            {% csrf_token %}<button class="btn btn-outline-danger w-100">Cancel order</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
