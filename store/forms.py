@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 
-from .models import Category, Order, Product
+from .models import Category, DiscountCode, Order, Product
 
 
 class BootstrapMixin:
@@ -93,7 +93,26 @@ def shrink_image(upload, max_side=1600):
     return InMemoryUploadedFile(out, "image", f"{stem}.{ext}", ctype, out.tell(), None)
 
 
+class MultipleFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class MultipleImageField(forms.ImageField):
+    widget = MultipleFileInput
+
+    def clean(self, data, initial=None):
+        files = data if isinstance(data, (list, tuple)) else ([data] if data else [])
+        return [super(MultipleImageField, self).clean(f, initial) for f in files]
+
+
+MAX_PHOTOS = 8
+
+
 class ProductForm(BootstrapMixin, forms.ModelForm):
+    extra_photos = MultipleImageField(
+        required=False, label="Add more photos",
+        widget=MultipleFileInput(attrs={"accept": "image/*", "multiple": True}),
+        help_text=f"Optional gallery photos (side, ports, box…). Up to {MAX_PHOTOS} per product.")
     summary = forms.CharField(
         required=False, max_length=160, label="Short summary",
         help_text="One line shown on product cards, e.g. “Core i5 · 16GB · 512GB SSD · 15.6\" FHD”.")
@@ -115,7 +134,7 @@ class ProductForm(BootstrapMixin, forms.ModelForm):
         fields = ["name", "category", "brand", "sku", "price", "compare_at_price", "stock", "description",
                   "image", "is_featured", "is_active"]
         widgets = {"description": forms.Textarea(attrs={"rows": 4}),
-                   "image": forms.ClearableFileInput(attrs={"accept": "image/*"})}
+                   "image": forms.FileInput(attrs={"accept": "image/*"})}
         labels = {"is_featured": "Feature on the home page", "is_active": "Visible in the store"}
 
     def __init__(self, *args, **kwargs):
@@ -163,6 +182,17 @@ class ProductForm(BootstrapMixin, forms.ModelForm):
             return shrink_image(image)
         return image
 
+    def clean_extra_photos(self):
+        photos = self.cleaned_data.get("extra_photos") or []
+        existing = self.instance.photos.count() if self.instance.pk else 0
+        if existing + len(photos) > MAX_PHOTOS:
+            raise forms.ValidationError(f"A product can have up to {MAX_PHOTOS} extra photos "
+                                        f"({existing} already added).")
+        limit = settings.MAX_UPLOAD_IMAGE_MB * 1024 * 1024
+        if any(p.size > limit for p in photos):
+            raise forms.ValidationError(f"Each photo must be under {settings.MAX_UPLOAD_IMAGE_MB} MB.")
+        return [shrink_image(p) for p in photos]
+
     def clean(self):
         data = super().clean()
         price, original = data.get("price"), data.get("compare_at_price")
@@ -186,7 +216,14 @@ class ProductForm(BootstrapMixin, forms.ModelForm):
             product.photo_similar = False
         if commit:
             product.save()
+            self.save_photos(product)
         return product
+
+    def save_photos(self, product):
+        from .models import ProductImage
+        start = (product.photos.order_by("-position").values_list("position", flat=True).first() or 0) + 1
+        for i, photo in enumerate(self.cleaned_data.get("extra_photos") or []):
+            ProductImage.objects.create(product=product, image=photo, position=start + i)
 
 
 class CategoryForm(BootstrapMixin, forms.ModelForm):
@@ -297,6 +334,48 @@ class AdminEditForm(BootstrapMixin, StaffRoleMixin, forms.ModelForm):
         if commit:
             user.save()
         return user
+
+
+class DiscountCodeForm(BootstrapMixin, forms.ModelForm):
+    class Meta:
+        model = DiscountCode
+        fields = ["code", "description", "kind", "value", "min_order", "max_uses", "once_per_customer",
+                  "starts_at", "ends_at", "is_active"]
+        widgets = {"starts_at": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+                   "ends_at": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+                   "code": forms.TextInput(attrs={"style": "text-transform:uppercase", "placeholder": "NEWYEAR10"})}
+
+    def clean_code(self):
+        code = self.cleaned_data["code"].strip().upper()
+        if not code.replace("-", "").replace("_", "").isalnum():
+            raise forms.ValidationError("Use only letters, numbers, - and _.")
+        if DiscountCode.objects.filter(code=code).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("This code already exists.")
+        return code
+
+    def clean(self):
+        data = super().clean()
+        if data.get("kind") == DiscountCode.Kind.PERCENT and data.get("value") and data["value"] > 100:
+            self.add_error("value", "A percentage can't be more than 100.")
+        if data.get("starts_at") and data.get("ends_at") and data["ends_at"] <= data["starts_at"]:
+            self.add_error("ends_at", "The end must be after the start.")
+        return data
+
+
+COURIERS = ["J&T Express", "VET Express", "Virak Buntham Express", "Grab Express", "Nham24", "TechCart delivery"]
+
+
+class DeliveryForm(BootstrapMixin, forms.ModelForm):
+    class Meta:
+        model = Order
+        fields = ["courier", "tracking_number"]
+        widgets = {"courier": forms.TextInput(attrs={"list": "courier-list", "placeholder": "e.g. J&T Express"}),
+                   "tracking_number": forms.TextInput(attrs={"placeholder": "e.g. 820012345678"})}
+
+
+class MarkPaidForm(BootstrapMixin, forms.Form):
+    reference = forms.CharField(max_length=40, required=False, label="Payment reference",
+                                widget=forms.TextInput(attrs={"placeholder": "Bank transaction ID (optional)"}))
 
 
 class OrderStatusForm(BootstrapMixin, forms.Form):

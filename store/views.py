@@ -134,19 +134,46 @@ def checkout(request):
     if last:
         initial.update(full_name=last.full_name, phone=last.phone, address=last.address)
 
-    form = CheckoutForm(request.POST or None, initial=initial)
-    if request.method == "POST" and form.is_valid():
+    # Discount code: "Apply" / "Remove" keep what the customer already typed in the form.
+    code_error = ""
+    if request.method == "POST" and ("apply_code" in request.POST or "remove_code" in request.POST):
+        if "remove_code" in request.POST:
+            request.session.pop("discount_code", None)
+        else:
+            try:
+                discount, _ = services.check_discount(request.POST.get("discount_code"), request.user, total)
+                request.session["discount_code"] = discount.code
+            except services.CartError as e:
+                code_error = str(e)
+        typed = {k: request.POST.get(k, "") for k in ("full_name", "phone", "address", "note", "payment_method")}
+        form = CheckoutForm(initial={**initial, **{k: v for k, v in typed.items() if v}})
+    else:
+        form = CheckoutForm(request.POST or None, initial=initial)
+
+    code = request.session.get("discount_code", "")
+    discount_amount = 0
+    if code:
         try:
-            order = services.place_order(request.user, **form.cleaned_data)
+            _, discount_amount = services.check_discount(code, request.user, total)
+        except services.CartError as e:
+            request.session.pop("discount_code", None)
+            code, code_error = "", code_error or str(e)
+
+    if request.method == "POST" and "apply_code" not in request.POST and "remove_code" not in request.POST \
+            and form.is_valid():
+        try:
+            order = services.place_order(request.user, discount_code=code, **form.cleaned_data)
         except services.CartError as e:
             messages.error(request, str(e))
-            return redirect("store:cart")
+            return redirect("store:checkout" if code else "store:cart")
+        request.session.pop("discount_code", None)
         if order.awaiting_qr_payment:
             return redirect("store:order_pay", pk=order.pk)
         messages.success(request, f"Thank you! Order {order.number} has been placed.")
         return redirect("store:order_detail", pk=order.pk)
-    return render(request, "store/checkout.html",
-                  {"form": form, "items": items, "total": total, "count": count})
+    return render(request, "store/checkout.html", {
+        "form": form, "items": items, "subtotal": total, "count": count, "code": code,
+        "code_error": code_error, "discount": discount_amount, "total": total - discount_amount})
 
 
 @login_required

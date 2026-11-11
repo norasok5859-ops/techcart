@@ -28,6 +28,13 @@
         <p class="mb-1 text-muted">{{ order.phone }}</p>
         <p class="text-muted">{{ order.address|linebreaksbr }}</p>
         {% if order.note %}<p class="small"><i class="bi bi-chat-left-text me-1"></i>{{ order.note }}</p>{% endif %}
+        {% if order.tracking_number or order.courier %}
+          <div class="tc-track mb-3 p-3 rounded-3 bg-accent-soft">
+            <div class="small fw-bold mb-1"><i class="bi bi-truck me-1"></i>On its way{% if order.shipped_at %} since {{ order.shipped_at|date:"d M" }}{% endif %}</div>
+            {% if order.courier %}<div class="small">Courier: <strong>{{ order.courier }}</strong></div>{% endif %}
+            {% if order.tracking_number %}<div class="small">Tracking no.: <strong class="font-monospace user-select-all">{{ order.tracking_number }}</strong></div>{% endif %}
+          </div>
+        {% endif %}
         <h2 class="h6 fw-bold">Payment</h2>
         <p class="text-muted mb-2">{{ order.get_payment_method_display }} · {{ order.total|money }}</p>
         <p><span class="badge text-bg-{{ order.payment_color }}">{{ order.get_payment_status_display }}</span>

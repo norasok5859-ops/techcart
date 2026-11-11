@@ -1,0 +1,39 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Discount codes{% endblock %}
+{% block dashboard %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div><h1 class="h3 fw-bold mb-0">Discount codes</h1>
+    <div class="text-muted small">Customers type these at checkout. Cancelling an order gives its code use back.</div></div>
+  <a href="{% url 'dashboard:discount_create' %}" class="btn btn-sm btn-accent"><i class="bi bi-plus-lg me-1"></i>Create code</a>
+</div>
+<div class="card tc-card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead><tr><th>Code</th><th>Discount</th><th>Conditions</th><th>Valid</th><th class="text-end">Used</th><th class="text-end">Given</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for c in codes %}
+        {% with st=c.state %}
+        <tr>
+          <td><span class="font-monospace fw-bold">{{ c.code }}</span>{% if c.description %}<div class="small text-muted">{{ c.description }}</div>{% endif %}</td>
+          <td class="fw-semibold">{{ c.label }}</td>
+          <td class="small">{% if c.min_order %}Orders over {{ c.min_order|money }}{% else %}Any order{% endif %}{% if c.once_per_customer %}<br>Once per customer{% endif %}</td>
+          <td class="small text-nowrap">{% if c.starts_at %}From {{ c.starts_at|date:"d M Y" }}<br>{% endif %}{% if c.ends_at %}Until {{ c.ends_at|date:"d M Y" }}{% elif not c.starts_at %}No end date{% endif %}</td>
+          <td class="text-end">{{ c.used_count }}{% if c.max_uses is not None %} / {{ c.max_uses }}{% endif %}</td>
+          <td class="text-end">{{ c.given|money }}</td>
+          <td><span class="badge text-bg-{{ st.1 }}">{{ st.0 }}</span></td>
+          <td class="text-end text-nowrap">
+            <a href="{% url 'dashboard:discount_edit' c.pk %}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{% url 'dashboard:discount_delete' c.pk %}" class="d-inline" onsubmit="return confirm('Delete code {{ c.code|escapejs }}?');">
+              {% csrf_token %}<button class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button></form>
+          </td>
+        </tr>
+        {% endwith %}
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-5"><i class="bi bi-ticket-perforated d-block fs-3 mb-2"></i>No discount codes yet.
+          <div><a href="{% url 'dashboard:discount_create' %}">Create your first code</a></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

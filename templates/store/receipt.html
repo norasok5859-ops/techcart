@@ -3,7 +3,8 @@
 {% block content %}
 <div class="container py-4 py-md-5">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4 no-print" style="max-width:760px;margin-inline:auto">
-    <a href="{% url 'store:order_detail' order.pk %}" class="small"><i class="bi bi-arrow-left"></i> Back to order</a>
+    {% if user.is_staff and order.user_id != user.pk %}<a href="{% url 'dashboard:order_detail' order.pk %}" class="small"><i class="bi bi-arrow-left"></i> Back to order (dashboard)</a>
+    {% else %}<a href="{% url 'store:order_detail' order.pk %}" class="small"><i class="bi bi-arrow-left"></i> Back to order</a>{% endif %}
     <div class="d-flex gap-2">
       <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-file-earmark-pdf me-1"></i>Save as PDF</button>
       <button class="btn btn-accent" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print receipt</button>
@@ -55,7 +56,8 @@
         <div class="small text-muted">Scan to view this receipt online.<br>Keep it for warranty claims.</div>
       </div>
       <dl class="tc-receipt-totals">
-        <div><dt>Subtotal</dt><dd>{{ order.total|money }}</dd></div>
+        <div><dt>Subtotal</dt><dd>{{ order.subtotal|money }}</dd></div>
+        {% if order.discount_amount %}<div><dt>Discount ({{ order.discount_code }})</dt><dd>−{{ order.discount_amount|money }}</dd></div>{% endif %}
         <div><dt>Delivery</dt><dd>Free</dd></div>
         <div class="grand"><dt>Total (USD)</dt><dd>{{ order.total|money }}</dd></div>
         {% if order.is_paid %}<div class="paid"><dt>Amount paid</dt><dd>{{ order.total|money }}</dd></div>{% endif %}

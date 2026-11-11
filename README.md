@@ -43,6 +43,15 @@ Customers can browse, search and filter products, build a custom PC, manage a ca
 - Orders: search by order number, name, phone or email; filter by status and payment; update status;
   export to CSV. Cancelling an order returns its items to stock
 - Customers: orders and total spent per customer, block / unblock, promote to staff, export to CSV
+- Product gallery: up to 8 extra photos per product (shrunk in the browser before upload), choose the main
+  photo; customers see a thumbnail gallery on the product page
+- Discount codes: percentage or fixed amount, minimum order, total-use limit, once per customer, start and
+  end dates; customers apply them at checkout (also via the API's `discount_code`)
+- Orders: courier and tracking number (shown to the customer), “Mark paid” with a bank reference,
+  printable packing slip, and an order history of every admin change
+- Activity log (owners): who changed what and when, e.g. “price $599.00 → $549.00”
+- On the live site the demo *owner* login is not listed on the login page; set `TECHCART_SHOW_DEMO_ADMIN=1`
+  in Vercel to list it again (e.g. while a teacher reviews the project)
 - Full Django admin at `/admin/`
 
 **API**

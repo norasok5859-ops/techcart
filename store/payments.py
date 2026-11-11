@@ -98,7 +98,8 @@ def receipt_data(order: Order) -> dict:
     return {
         "receipt_number": order.receipt_number, "order_number": order.number,
         "date": order.paid_at or order.created_at, "customer": order.full_name, "phone": order.phone,
-        "address": order.address, "items": items, "subtotal": f"{order.total:.2f}", "delivery": "0.00",
+        "address": order.address, "items": items, "subtotal": f"{order.subtotal:.2f}", "delivery": "0.00",
+        "discount_code": order.discount_code, "discount": f"{order.discount_amount:.2f}",
         "total": f"{order.total:.2f}", "currency": "USD",
         "payment_method": order.get_payment_method_display(), "payment_status": order.payment_status,
         "payment_ref": order.payment_ref, "paid_at": order.paid_at, "order_status": order.status,

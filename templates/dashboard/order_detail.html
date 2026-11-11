@@ -4,16 +4,26 @@
 <a href="{% url 'dashboard:orders' %}" class="small"><i class="bi bi-arrow-left"></i> Orders</a>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 mb-4">
   <div>
-    <h1 class="h3 fw-bold mb-0">Order {{ order.number }}</h1>
+    <h1 class="h3 fw-bold mb-0">Order {{ order.number }} <span class="badge fs-6 align-middle text-bg-{{ order.status_color }}">{{ order.get_status_display }}</span></h1>
     <div class="text-muted small">Placed {{ order.created_at|date:"d M Y, H:i" }} by @{{ order.user.username }}</div>
   </div>
-  <span class="badge fs-6 text-bg-{{ order.status_color }}">{{ order.get_status_display }}</span>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'store:order_receipt' order.pk %}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener"><i class="bi bi-receipt me-1"></i>{% if order.is_paid %}Receipt{% else %}Invoice{% endif %}</a>
+    <a href="{% url 'dashboard:order_packing_slip' order.pk %}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener"><i class="bi bi-box2 me-1"></i>Packing slip</a>
+  </div>
 </div>
 <div class="row g-4">
-  <div class="col-lg-8"><div class="card tc-card p-3">{% include "store/_order_items.html" %}</div></div>
+  <div class="col-lg-8">
+    <div class="card tc-card p-3 mb-4">{% include "store/_order_items.html" %}</div>
+    <div class="card tc-card p-4">
+      <h2 class="h6 fw-bold mb-1">History</h2>
+      {% include "dashboard/_activity_list.html" with entries=history %}
+      <div class="small text-muted pt-2 border-top"><i class="bi bi-bag-check me-1"></i>Order placed by the customer · {{ order.created_at|date:"d M Y, H:i" }}</div>
+    </div>
+  </div>
   <div class="col-lg-4">
     <div class="card tc-card p-4 mb-3">
-      <h2 class="h6 fw-bold">Update status</h2>
+      <h2 class="h6 fw-bold">Status</h2>
       {% if order.status == "cancelled" %}
         <p class="small text-muted mb-0">This order was cancelled and its items were returned to stock.</p>
       {% else %}
@@ -24,20 +34,42 @@
         <div class="form-text">Cancelling returns the items to stock.</div>
       {% endif %}
     </div>
+
     <div class="card tc-card p-4 mb-3">
       <h2 class="h6 fw-bold">Payment</h2>
       <p class="mb-1">{{ order.get_payment_method_display }} · <span class="badge text-bg-{{ order.payment_color }}">{{ order.get_payment_status_display }}</span></p>
       {% if order.paid_at %}<p class="small text-muted mb-1">Paid {{ order.paid_at|date:"d M Y, H:i" }}</p>{% endif %}
-      {% if order.payment_ref %}<p class="small mb-2">Ref <code>{{ order.payment_ref }}</code></p>{% endif %}
-      {% if order.payment_method == "cod" and not order.is_paid %}<p class="small text-muted mb-2">Marked paid automatically when set to Delivered.</p>{% endif %}
-      <a href="{% url 'store:order_receipt' order.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-receipt me-1"></i>Receipt / invoice</a>
+      {% if order.payment_ref %}<p class="small mb-1">Ref <code>{{ order.payment_ref }}</code></p>{% endif %}
+      {% if order.discount_code %}<p class="small mb-1">Code <code>{{ order.discount_code }}</code> · −{{ order.discount_amount|money }}</p>{% endif %}
+      {% if not order.is_paid and order.status != "cancelled" %}
+        {% if order.payment_method == "cod" %}<p class="small text-muted mb-2">Marked paid automatically when set to Delivered.</p>{% endif %}
+        <form method="post" action="{% url 'dashboard:order_mark_paid' order.pk %}" class="mt-2" onsubmit="return confirm('Mark {{ order.number }} as paid ({{ order.total|money }})?');">
+          {% csrf_token %}
+          <label class="form-label small fw-semibold" for="{{ paid_form.reference.id_for_label }}">Received the money another way?</label>
+          <div class="input-group input-group-sm">{{ paid_form.reference }}<button class="btn btn-outline-success" type="submit"><i class="bi bi-check2 me-1"></i>Mark paid</button></div>
+        </form>
+      {% endif %}
     </div>
-    <div class="card tc-card p-4">
+
+    <div class="card tc-card p-4 mb-3">
       <h2 class="h6 fw-bold">Delivery</h2>
       <p class="mb-1">{{ order.full_name }}</p>
       <p class="mb-1 text-muted">{{ order.phone }}</p>
       <p class="text-muted mb-2">{{ order.address|linebreaksbr }}</p>
-      {% if order.note %}<p class="small mb-0"><i class="bi bi-chat-left-text me-1"></i>{{ order.note }}</p>{% endif %}
+      {% if order.note %}<p class="small mb-2"><i class="bi bi-chat-left-text me-1"></i>{{ order.note }}</p>{% endif %}
+      {% if order.status != "cancelled" %}
+      <form method="post" action="{% url 'dashboard:order_delivery' order.pk %}" class="border-top pt-3">
+        {% csrf_token %}
+        <div class="mb-2"><label class="form-label small fw-semibold" for="{{ delivery_form.courier.id_for_label }}">Courier</label>{{ delivery_form.courier }}
+          <datalist id="courier-list">{% for c in couriers %}<option value="{{ c }}">{% endfor %}</datalist></div>
+        <div class="mb-2"><label class="form-label small fw-semibold" for="{{ delivery_form.tracking_number.id_for_label }}">Tracking number</label>{{ delivery_form.tracking_number }}</div>
+        {% if order.status == "pending" or order.status == "confirmed" %}
+          <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="mark_shipped" value="1" id="mark-shipped" checked>
+            <label class="form-check-label small" for="mark-shipped">Also mark the order as Shipped</label></div>
+        {% elif order.shipped_at %}<p class="small text-muted mb-2">Shipped {{ order.shipped_at|date:"d M Y, H:i" }}</p>{% endif %}
+        <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-truck me-1"></i>Save delivery</button>
+      </form>
+      {% endif %}
     </div>
   </div>
 </div>

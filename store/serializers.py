@@ -96,13 +96,18 @@ class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     number = serializers.CharField(read_only=True)
     customer = serializers.CharField(source="user.username", read_only=True)
+    subtotal = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    discount_code = serializers.CharField(required=False, allow_blank=True, max_length=40,
+                                          help_text="Optional discount code, e.g. NEWYEAR10")
 
     class Meta:
         model = Order
         fields = ["id", "number", "customer", "full_name", "phone", "address", "note",
                   "payment_method", "payment_status", "paid_at", "payment_ref",
-                  "status", "total", "items", "created_at"]
-        read_only_fields = ["payment_status", "paid_at", "payment_ref", "status", "total", "created_at"]
+                  "status", "subtotal", "discount_code", "discount_amount", "total",
+                  "courier", "tracking_number", "shipped_at", "items", "created_at"]
+        read_only_fields = ["payment_status", "paid_at", "payment_ref", "status", "total", "created_at",
+                            "discount_amount", "courier", "tracking_number", "shipped_at"]
 
 
 class PaymentQRSerializer(serializers.Serializer):

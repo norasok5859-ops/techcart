@@ -7,6 +7,12 @@
             <td class="text-end">{{ item.quantity }}</td><td class="text-end">{{ item.subtotal|money }}</td></tr>
       {% endfor %}
     </tbody>
-    <tfoot><tr><th colspan="3" class="text-end">Total</th><th class="text-end">{{ order.total|money }}</th></tr></tfoot>
+    <tfoot>
+      {% if order.discount_amount %}
+        <tr><td colspan="3" class="text-end">Subtotal</td><td class="text-end">{{ order.subtotal|money }}</td></tr>
+        <tr class="text-success"><td colspan="3" class="text-end">Discount <code class="text-success">{{ order.discount_code }}</code></td><td class="text-end">−{{ order.discount_amount|money }}</td></tr>
+      {% endif %}
+      <tr><th colspan="3" class="text-end">Total</th><th class="text-end">{{ order.total|money }}</th></tr>
+    </tfoot>
   </table>
 </div>

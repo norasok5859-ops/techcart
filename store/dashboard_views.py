@@ -20,9 +20,10 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from . import services
-from .forms import AdminCreateForm, AdminEditForm, CategoryForm, OrderStatusForm, ProductForm
-from .models import Category, Order, OrderItem, Product
+from . import activity, services
+from .forms import (COURIERS, AdminCreateForm, AdminEditForm, CategoryForm, DeliveryForm, DiscountCodeForm,
+                    MarkPaidForm, OrderStatusForm, ProductForm)
+from .models import ActivityLog, Category, DiscountCode, Order, OrderItem, Product, ProductImage
 
 LOW_STOCK = 5
 PER_PAGE = 20
@@ -92,6 +93,7 @@ def overview(request):
     status_counts = dict(Order.objects.values_list("status").annotate(n=Count("id")))
     return render(request, "dashboard/overview.html", {
         "stats": stats, "chart": chart, "top_products": top_products,
+        "recent_activity": ActivityLog.objects.all()[:6] if request.user.is_superuser else [],
         "recent_orders": Order.objects.select_related("user")[:6],
         "low_stock_products": Product.objects.filter(is_active=True, stock__lte=LOW_STOCK).order_by("stock")[:8],
         "status_counts": [(label, status_counts.get(value, 0), value) for value, label in Order.Status.choices],
@@ -144,14 +146,25 @@ def product_list(request):
 @staff_required
 def product_form(request, pk=None):
     product = get_object_or_404(Product, pk=pk) if pk else None
+    before = activity.snapshot(product)
     form = ProductForm(request.POST or None, request.FILES or None, instance=product)
     if request.method == "POST" and form.is_valid():
         obj = form.save()
+        added = len(form.cleaned_data.get("extra_photos") or [])
+        if pk:
+            details = activity.describe_changes(before, obj)
+            if added:
+                details = "; ".join(filter(None, [details, f"{added} photo{'s' if added != 1 else ''} added"]))
+            if details:
+                activity.log(request, "updated", "Product", obj, details)
+        else:
+            activity.log(request, "created", "Product", obj, f"price {obj.price:,.2f}, stock {obj.stock}")
         messages.success(request, f"Product “{obj.name}” {'updated' if pk else 'created'}.")
         if request.POST.get("then") == "add_another":
             return redirect("dashboard:product_create")
         return redirect("dashboard:products")
-    return render(request, "dashboard/product_form.html", {"form": form, "product": product})
+    return render(request, "dashboard/product_form.html", {
+        "form": form, "product": product, "photos": product.photos.all() if product else []})
 
 
 @staff_required
@@ -166,6 +179,9 @@ def product_duplicate(request, pk):
     copy.is_active = False  # hidden until it has been checked
     copy.is_featured = False
     copy.save()
+    for photo in original.photos.all():
+        ProductImage.objects.create(product=copy, image=photo.image.name, position=photo.position)
+    activity.log(request, "created", "Product", copy, f"copied from “{original.name}”")
     messages.success(request, f"Copied “{original.name}”. The copy is hidden until you save it as visible.")
     return redirect("dashboard:product_edit", pk=copy.pk)
 
@@ -177,6 +193,7 @@ def product_delete(request, pk):
     name = product.name
     try:
         product.delete()
+        activity.log(request, "deleted", "Product", None, label=name)
         messages.success(request, f"Product “{name}” deleted.")
     except ProtectedError:
         messages.error(request, "This product can't be deleted.")
@@ -194,8 +211,11 @@ def product_stock(request, pk):
     except ValueError:
         messages.error(request, "Stock must be a whole number of 0 or more.")
     else:
+        old = product.stock
         product.stock = value
         product.save(update_fields=["stock", "updated_at"])
+        if old != value:
+            activity.log(request, "updated", "Product", product, f"stock {old} → {value}")
         messages.success(request, f"Stock for “{product.name}” set to {value}.")
     return redirect(safe_next(request, "/dashboard/products/"))
 
@@ -220,11 +240,16 @@ def product_bulk(request):
     qs = Product.objects.filter(pk__in=ids)
     if action in BULK_ACTIONS:
         label, changes = BULK_ACTIONS[action]
+        names = ", ".join(qs.values_list("name", flat=True)[:10])
         n = qs.update(**changes, updated_at=timezone.now())
+        activity.log(request, "updated", "Product", None, f"{label}: {names}{' …' if n > 10 else ''}",
+                     label=f"{n} product{'s' if n != 1 else ''}")
         messages.success(request, f"{n} product{'s' if n != 1 else ''} {label}.")
     elif action == "delete":
         n = qs.count()
+        names = ", ".join(qs.values_list("name", flat=True)[:10])
         qs.delete()
+        activity.log(request, "deleted", "Product", None, names, label=f"{n} product{'s' if n != 1 else ''}")
         messages.success(request, f"{n} product{'s' if n != 1 else ''} deleted.")
     else:
         messages.error(request, "Choose an action.")
@@ -246,6 +271,7 @@ def category_form(request, pk=None):
     form = CategoryForm(request.POST or None, instance=category)
     if request.method == "POST" and form.is_valid():
         obj = form.save()
+        activity.log(request, "updated" if pk else "created", "Category", obj)
         messages.success(request, f"Category “{obj.name}” {'updated' if pk else 'created'}.")
         return redirect("dashboard:categories")
     return render(request, "dashboard/category_form.html", {"form": form, "category": category})
@@ -257,6 +283,7 @@ def category_delete(request, pk):
     category = get_object_or_404(Category, pk=pk)
     try:
         category.delete()
+        activity.log(request, "deleted", "Category", None, label=category.name)
         messages.success(request, f"Category “{category.name}” deleted.")
     except ProtectedError:
         messages.error(request, f"“{category.name}” still has products. Move or delete them first.")
@@ -309,12 +336,61 @@ def order_detail(request, pk):
     form = OrderStatusForm(request.POST or None, initial={"status": order.status})
     if request.method == "POST" and form.is_valid():
         try:
+            old = order.get_status_display()
             services.change_order_status(order, form.cleaned_data["status"])
+            activity.log(request, "updated", "Order", order, f"status {old} → {order.get_status_display()}",
+                         label=order.number)
             messages.success(request, f"Order {order.number} is now {order.get_status_display()}.")
         except services.CartError as e:
             messages.error(request, str(e))
         return redirect("dashboard:order_detail", pk=order.pk)
-    return render(request, "dashboard/order_detail.html", {"order": order, "form": form})
+    return render(request, "dashboard/order_detail.html", {
+        "order": order, "form": form, "delivery_form": DeliveryForm(instance=order),
+        "paid_form": MarkPaidForm(), "couriers": COURIERS,
+        "history": ActivityLog.objects.filter(target_type="Order", target_id=order.pk)[:20]})
+
+
+@staff_required
+@require_POST
+def order_delivery(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    form = DeliveryForm(request.POST, instance=order)
+    if form.is_valid():
+        form.save()
+        mark_shipped = request.POST.get("mark_shipped") and order.status in (Order.Status.PENDING,
+                                                                            Order.Status.CONFIRMED)
+        if mark_shipped:
+            services.change_order_status(order, Order.Status.SHIPPED)
+        activity.log(request, "updated", "Order", order,
+                     f"delivery: {order.courier or '—'} {order.tracking_number}".strip()
+                     + ("; status → Shipped" if mark_shipped else ""), label=order.number)
+        messages.success(request, "Delivery details saved. The customer can see them on their order page."
+                         + (" Order marked as shipped." if mark_shipped else ""))
+    else:
+        messages.error(request, "Please check the delivery details.")
+    return redirect("dashboard:order_detail", pk=order.pk)
+
+
+@staff_required
+@require_POST
+def order_mark_paid(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    form = MarkPaidForm(request.POST)
+    form.is_valid()
+    try:
+        order = services.mark_paid(order, form.cleaned_data.get("reference", ""))
+        activity.log(request, "updated", "Order", order, f"marked paid (ref {order.payment_ref})",
+                     label=order.number)
+        messages.success(request, f"Order {order.number} marked as paid.")
+    except services.CartError as e:
+        messages.error(request, str(e))
+    return redirect("dashboard:order_detail", pk=order.pk)
+
+
+@staff_required
+def order_packing_slip(request, pk):
+    order = get_object_or_404(Order.objects.prefetch_related("items__product"), pk=pk)
+    return render(request, "dashboard/packing_slip.html", {"order": order})
 
 
 # ---------- Customers ----------
@@ -348,6 +424,7 @@ def customer_toggle(request, pk):
     user = get_object_or_404(User, pk=pk, is_staff=False)
     user.is_active = not user.is_active
     user.save(update_fields=["is_active"])
+    activity.log(request, "unblocked" if user.is_active else "blocked", "Customer", user, label=user.username)
     messages.success(request, f"{user.username} can {'now' if user.is_active else 'no longer'} log in.")
     return redirect(safe_next(request, "/dashboard/customers/"))
 
@@ -358,6 +435,7 @@ def customer_make_admin(request, pk):
     user = get_object_or_404(User, pk=pk, is_staff=False)
     user.is_staff = True
     user.save(update_fields=["is_staff"])
+    activity.log(request, "added", "Admin", user, "promoted from customer to staff", label=user.username)
     messages.success(request, f"{user.username} is now a staff admin.")
     return redirect("dashboard:team_edit", pk=user.pk)
 
@@ -376,6 +454,7 @@ def team_add(request):
     if request.method == "POST" and form.is_valid():
         user = form.save()
         role = "owner" if user.is_superuser else "staff admin"
+        activity.log(request, "added", "Admin", user, f"role: {role}", label=user.username)
         messages.success(request, f"{user.get_full_name() or user.username} was added as {role}. "
                                   f"They can log in as “{user.username}”.")
         return redirect("dashboard:team")
@@ -387,7 +466,12 @@ def team_edit(request, pk):
     member = get_object_or_404(User, pk=pk, is_staff=True)
     form = AdminEditForm(request.POST or None, instance=member, editor=request.user)
     if request.method == "POST" and form.is_valid():
+        changes = [f"{f.replace('_', ' ')}" for f in form.changed_data if f != "new_password"]
+        if form.cleaned_data.get("new_password"):
+            changes.append("password reset")
         user = form.save()
+        if changes:
+            activity.log(request, "updated", "Admin", user, "changed: " + ", ".join(changes), label=user.username)
         if user.pk == request.user.pk and form.cleaned_data.get("new_password"):
             from django.contrib.auth import update_session_auth_hash
             update_session_auth_hash(request, user)  # stay logged in after changing your own password
@@ -408,5 +492,95 @@ def team_remove(request, pk):
     else:
         member.is_staff = member.is_superuser = False
         member.save(update_fields=["is_staff", "is_superuser"])
+        activity.log(request, "removed", "Admin", member, "admin access removed", label=member.username)
         messages.success(request, f"{member.username} no longer has admin access (their account still exists).")
     return redirect("dashboard:team")
+
+
+# ---------- Product photos ----------
+
+@staff_required
+@require_POST
+def photo_delete(request, pk, photo_pk):
+    photo = get_object_or_404(ProductImage, pk=photo_pk, product_id=pk)
+    photo.delete()
+    activity.log(request, "updated", "Product", photo.product, "gallery photo removed")
+    messages.success(request, "Photo removed.")
+    return redirect("dashboard:product_edit", pk=pk)
+
+
+@staff_required
+@require_POST
+def photo_make_main(request, pk, photo_pk):
+    """Swap a gallery photo with the main photo."""
+    photo = get_object_or_404(ProductImage, pk=photo_pk, product_id=pk)
+    product = photo.product
+    main = product.image.name if product.image else ""
+    new_main = photo.image.name
+    # Give the old main photo to the gallery first, so it is never left unused (and cleaned up).
+    if main:
+        photo.image = main
+        photo.save(update_fields=["image"])
+    product.image = new_main
+    product.photo_credit = product.photo_license = product.photo_source = ""
+    product.photo_similar = False
+    product.save()
+    if not main:
+        photo.delete()
+    activity.log(request, "updated", "Product", product, "main photo changed")
+    messages.success(request, "Main photo changed.")
+    return redirect("dashboard:product_edit", pk=pk)
+
+
+# ---------- Discount codes ----------
+
+@staff_required
+def discount_list(request):
+    codes = DiscountCode.objects.all()
+    totals = dict(Order.objects.exclude(discount_code="").exclude(status=Order.Status.CANCELLED)
+                  .values_list("discount_code").annotate(s=Sum("discount_amount")))
+    for c in codes:
+        c.given = totals.get(c.code, 0)
+    return render(request, "dashboard/discounts.html", {"codes": codes})
+
+
+@staff_required
+def discount_form(request, pk=None):
+    discount = get_object_or_404(DiscountCode, pk=pk) if pk else None
+    form = DiscountCodeForm(request.POST or None, instance=discount)
+    if request.method == "POST" and form.is_valid():
+        obj = form.save()
+        activity.log(request, "updated" if pk else "created", "Discount", obj, obj.label, label=obj.code)
+        messages.success(request, f"Discount code {obj.code} {'updated' if pk else 'created'}.")
+        return redirect("dashboard:discounts")
+    return render(request, "dashboard/discount_form.html", {"form": form, "discount": discount})
+
+
+@staff_required
+@require_POST
+def discount_delete(request, pk):
+    discount = get_object_or_404(DiscountCode, pk=pk)
+    discount.delete()
+    activity.log(request, "deleted", "Discount", None, label=discount.code)
+    messages.success(request, f"Discount code {discount.code} deleted. Past orders keep their discount.")
+    return redirect("dashboard:discounts")
+
+
+# ---------- Activity log ----------
+
+@owner_required
+def activity_list(request):
+    qs = ActivityLog.objects.all()
+    f = {k: request.GET.get(k, "").strip() for k in ("who", "type", "q")}
+    if f["who"]:
+        qs = qs.filter(username=f["who"])
+    if f["type"]:
+        qs = qs.filter(target_type=f["type"])
+    if f["q"]:
+        qs = qs.filter(Q(target_label__icontains=f["q"]) | Q(details__icontains=f["q"]))
+    query = request.GET.copy()
+    query.pop("page", None)
+    return render(request, "dashboard/activity.html", {
+        "page": Paginator(qs, 30).get_page(request.GET.get("page")), "f": f, "query": query.urlencode(),
+        "people": ActivityLog.objects.order_by("username").values_list("username", flat=True).distinct(),
+        "types": ["Product", "Category", "Order", "Discount", "Customer", "Admin"]})

@@ -5,7 +5,7 @@
   <h1 class="h3 fw-bold mb-4">Checkout</h1>
   <div class="row g-4">
     <div class="col-lg-7">
-      <form method="post" class="card tc-card p-4" novalidate>
+      <form method="post" class="card tc-card p-4" id="checkout-form" novalidate>
         {% csrf_token %}
         <h2 class="h5 fw-bold mb-3"><i class="bi bi-geo-alt me-1"></i>Delivery details</h2>
         {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
@@ -48,10 +48,34 @@
             </li>
           {% endfor %}
         </ul>
+        <div class="d-flex justify-content-between"><span>Subtotal</span><span>{{ subtotal|money }}</span></div>
+        {% if code %}<div class="d-flex justify-content-between text-success"><span><i class="bi bi-ticket-perforated me-1"></i>Discount <code class="text-success">{{ code }}</code></span><span>−{{ discount|money }}</span></div>{% endif %}
         <div class="d-flex justify-content-between"><span>Delivery</span><span class="text-success">Free</span></div>
         <div class="d-flex justify-content-between fs-5 fw-bold mt-2"><span>Total</span><span>{{ total|money }}</span></div>
+
+        <div class="border-top mt-3 pt-3">
+          <label class="form-label fw-semibold small" for="discount_code">Discount code</label>
+          {% if code %}
+            <div class="d-flex justify-content-between align-items-center bg-success-subtle rounded-3 px-3 py-2">
+              <span class="small"><i class="bi bi-check-circle-fill text-success me-1"></i><strong>{{ code }}</strong> applied</span>
+              <button class="btn btn-sm btn-link text-danger p-0" type="submit" form="checkout-form" name="remove_code" value="1" formnovalidate>Remove</button>
+            </div>
+          {% else %}
+            <div class="input-group">
+              <input id="discount_code" class="form-control text-uppercase {% if code_error %}is-invalid{% endif %}" name="discount_code" form="checkout-form" placeholder="Enter code" autocomplete="off">
+              <button class="btn btn-outline-primary" type="submit" form="checkout-form" name="apply_code" value="1" formnovalidate>Apply</button>
+            </div>
+            {% if code_error %}<div class="invalid-feedback d-block">{{ code_error }}</div>{% endif %}
+          {% endif %}
+        </div>
       </div>
     </div>
   </div>
 </div>
+<script>
+// Enter in the discount box applies the code instead of placing the order.
+document.getElementById("discount_code")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); document.querySelector('[name="apply_code"]').click(); }
+});
+</script>
 {% endblock %}

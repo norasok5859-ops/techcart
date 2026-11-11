@@ -22,6 +22,8 @@ DEMO_ACCOUNTS = [
 
 
 def public_demo_accounts():
-    """What the login page and API show: no internal flags."""
+    """What the login page and API show: no internal flags, and no admin account unless allowed."""
+    from django.conf import settings
+
     return [{k: a[k] for k in ("username", "password", "email", "first_name", "role", "note")}
-            for a in DEMO_ACCOUNTS]
+            for a in DEMO_ACCOUNTS if settings.SHOW_DEMO_ADMIN or not a["is_staff"]]

@@ -1,10 +1,10 @@
 """Business logic shared by the web pages and the REST API."""
 from decimal import Decimal
 
-from django.db import transaction
+from django.db import models, transaction
 from django.utils import timezone
 
-from .models import CartItem, Order, OrderItem, Product
+from .models import CartItem, DiscountCode, Order, OrderItem, Product
 
 
 class CartError(Exception):
@@ -44,8 +44,32 @@ def set_quantity(item, quantity):
     return item
 
 
+def check_discount(code, user, subtotal, lock=False):
+    """Return (DiscountCode, amount) for a code typed at checkout, or raise CartError with the reason."""
+    code = (code or "").strip().upper()
+    if not code:
+        raise CartError("Enter a discount code.")
+    qs = DiscountCode.objects.select_for_update() if lock else DiscountCode.objects
+    discount = qs.filter(code=code).first()
+    if discount is None:
+        raise CartError(f"“{code}” is not a valid discount code.")
+    state, _ = discount.state
+    if state == "Scheduled":
+        raise CartError(f"“{code}” can be used from {timezone.localtime(discount.starts_at):%d %b %Y}.")
+    if state != "Active":
+        raise CartError(f"“{code}” has expired." if state in ("Expired", "Used up")
+                        else f"“{code}” is not available.")
+    if subtotal < discount.min_order:
+        raise CartError(f"“{code}” needs an order of at least ${discount.min_order:,.2f}.")
+    if discount.once_per_customer and user.orders.filter(discount_code=code).exclude(
+            status=Order.Status.CANCELLED).exists():
+        raise CartError(f"You have already used “{code}”.")
+    return discount, discount.amount_for(subtotal)
+
+
 @transaction.atomic
-def place_order(user, full_name, phone, address, note="", payment_method=Order.PaymentMethod.COD):
+def place_order(user, full_name, phone, address, note="", payment_method=Order.PaymentMethod.COD,
+                discount_code=""):
     """Turn the user's cart into an order (cash on delivery or KHQR) and reduce stock."""
     if payment_method not in Order.PaymentMethod.values:
         raise CartError("Unknown payment method.")
@@ -73,8 +97,13 @@ def place_order(user, full_name, phone, address, note="", payment_method=Order.P
         product.stock -= item.quantity
         product.save(update_fields=["stock"])
         total += product.price * item.quantity
+    if discount_code:
+        discount, amount = check_discount(discount_code, user, total, lock=True)
+        DiscountCode.objects.filter(pk=discount.pk).update(used_count=models.F("used_count") + 1)
+        order.discount_code, order.discount_amount = discount.code, amount
+        total -= amount
     order.total = total
-    order.save(update_fields=["total"])
+    order.save(update_fields=["total", "discount_code", "discount_amount"])
     CartItem.objects.filter(user=user).delete()
     return order
 
@@ -93,6 +122,11 @@ def change_order_status(order, new_status):
                 item.product.save(update_fields=["stock"])
         if order.payment_status == Order.PaymentStatus.PAID:
             order.payment_status = Order.PaymentStatus.REFUNDED
+        if order.discount_code:  # the customer may use the code again
+            DiscountCode.objects.filter(code=order.discount_code, used_count__gt=0).update(
+                used_count=models.F("used_count") - 1)
+    if new_status == Order.Status.SHIPPED and not order.shipped_at:
+        order.shipped_at = timezone.now()
     # Cash on delivery is collected when the order is delivered.
     if new_status == Order.Status.DELIVERED and order.payment_method == Order.PaymentMethod.COD \
             and order.payment_status == Order.PaymentStatus.UNPAID:
@@ -100,5 +134,22 @@ def change_order_status(order, new_status):
         order.paid_at = timezone.now()
         order.payment_ref = f"COD-{order.pk:05d}"
     order.status = new_status
-    order.save(update_fields=["status", "payment_status", "paid_at", "payment_ref"])
+    order.save(update_fields=["status", "payment_status", "paid_at", "payment_ref", "shipped_at"])
+    return order
+
+
+@transaction.atomic
+def mark_paid(order, reference):
+    """Admin: record a payment received outside the site (bank transfer, cash at the shop)."""
+    order = Order.objects.select_for_update().get(pk=order.pk)
+    if order.status == Order.Status.CANCELLED:
+        raise CartError("A cancelled order can't be marked as paid.")
+    if order.is_paid:
+        raise CartError("This order is already paid.")
+    order.payment_status = Order.PaymentStatus.PAID
+    order.paid_at = timezone.now()
+    order.payment_ref = reference.strip()[:40] or f"MANUAL-{order.pk:05d}"
+    if order.status == Order.Status.PENDING:
+        order.status = Order.Status.CONFIRMED
+    order.save(update_fields=["payment_status", "paid_at", "payment_ref", "status"])
     return order

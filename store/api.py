@@ -149,6 +149,7 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
         try:
             order = services.place_order(
                 request.user, payment_method=s.validated_data.get("payment_method", Order.PaymentMethod.COD),
+                discount_code=s.validated_data.get("discount_code", ""),
                 **{k: s.validated_data.get(k, "") for k in ("full_name", "phone", "address", "note")})
         except services.CartError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)

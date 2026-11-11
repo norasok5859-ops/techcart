@@ -1,0 +1,17 @@
+<ul class="tc-activity">
+  {% for a in entries %}
+    <li>
+      <span class="tc-activity-icon bg-{{ a.color }}-subtle text-{{ a.color }}-emphasis"><i class="bi bi-{{ a.icon }}"></i></span>
+      <div class="flex-grow-1 small">
+        <div><strong>@{{ a.username }}</strong> {{ a.action }} {{ a.target_type|lower }}
+          {% if a.target_id and a.target_type == "Product" and a.action != "deleted" %}<a href="{% url 'dashboard:product_edit' a.target_id %}" class="fw-semibold">{{ a.target_label }}</a>
+          {% elif a.target_id and a.target_type == "Order" %}<a href="{% url 'dashboard:order_detail' a.target_id %}" class="fw-semibold">{{ a.target_label }}</a>
+          {% else %}<span class="fw-semibold">{{ a.target_label }}</span>{% endif %}</div>
+        {% if a.details %}<div class="text-muted">{{ a.details }}</div>{% endif %}
+      </div>
+      <div class="small text-muted text-nowrap" title="{{ a.created_at|date:'d M Y, H:i:s' }}">{{ a.created_at|timesince }} ago</div>
+    </li>
+  {% empty %}
+    <li class="text-muted small justify-content-center py-4">Nothing recorded yet.</li>
+  {% endfor %}
+</ul>

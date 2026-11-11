@@ -164,10 +164,20 @@ class Order(models.Model):
     paid_at = models.DateTimeField(null=True, blank=True)
     payment_ref = models.CharField(max_length=40, blank=True, help_text="Bank / KHQR transaction reference")
     total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    discount_code = models.CharField(max_length=40, blank=True)
+    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    courier = models.CharField(max_length=60, blank=True)
+    tracking_number = models.CharField(max_length=80, blank=True)
+    shipped_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
+
+    @property
+    def subtotal(self):
+        """Items before the discount (the total is what the customer pays)."""
+        return self.total + self.discount_amount
 
     @property
     def number(self):
@@ -227,3 +237,105 @@ class StoredFile(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ProductImage(models.Model):
+    """Extra gallery photos of a product (the main photo is Product.image)."""
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="photos")
+    image = models.ImageField(upload_to="products/gallery/")
+    position = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["position", "id"]
+
+    def __str__(self):
+        return f"Photo of {self.product}"
+
+
+class DiscountCode(models.Model):
+    class Kind(models.TextChoices):
+        PERCENT = "percent", "Percentage off"
+        FIXED = "fixed", "Fixed amount off ($)"
+
+    code = models.CharField(max_length=40, unique=True,
+                            help_text="What customers type at checkout, e.g. NEWYEAR10. Letters and numbers.")
+    description = models.CharField(max_length=160, blank=True, help_text="Internal note, e.g. “New Year campaign”.")
+    kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.PERCENT)
+    value = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))],
+                                help_text="10 = 10% off (percentage) or $10 off (fixed amount).")
+    min_order = models.DecimalField("Minimum order", max_digits=10, decimal_places=2, default=Decimal("0.00"),
+                                    help_text="Order subtotal needed to use the code. 0 = no minimum.")
+    max_uses = models.PositiveIntegerField("Total uses allowed", null=True, blank=True,
+                                           help_text="Leave empty for unlimited.")
+    once_per_customer = models.BooleanField(default=True)
+    used_count = models.PositiveIntegerField(default=0)
+    starts_at = models.DateTimeField("Starts", null=True, blank=True)
+    ends_at = models.DateTimeField("Ends", null=True, blank=True)
+    is_active = models.BooleanField("Active", default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        self.code = self.code.strip().upper()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.code
+
+    @property
+    def label(self):
+        return f"{self.value.normalize():f}% off" if self.kind == self.Kind.PERCENT else f"${self.value:,.2f} off"
+
+    @property
+    def state(self):
+        """("Active" | "Scheduled" | "Expired" | "Used up" | "Off", bootstrap colour)."""
+        from django.utils import timezone
+        now = timezone.now()
+        if not self.is_active:
+            return "Off", "secondary"
+        if self.ends_at and self.ends_at < now:
+            return "Expired", "secondary"
+        if self.max_uses is not None and self.used_count >= self.max_uses:
+            return "Used up", "secondary"
+        if self.starts_at and self.starts_at > now:
+            return "Scheduled", "info"
+        return "Active", "success"
+
+    def amount_for(self, subtotal):
+        if self.kind == self.Kind.PERCENT:
+            amount = (subtotal * min(self.value, Decimal("100")) / 100).quantize(Decimal("0.01"))
+        else:
+            amount = self.value
+        return min(amount, subtotal)
+
+
+class ActivityLog(models.Model):
+    """Who changed what in the admin dashboard, and when."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                             related_name="+")
+    username = models.CharField(max_length=150)
+    action = models.CharField(max_length=30)
+    target_type = models.CharField(max_length=30)
+    target_id = models.PositiveIntegerField(null=True, blank=True)
+    target_label = models.CharField(max_length=200, blank=True)
+    details = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    @property
+    def icon(self):
+        return {"Product": "box-seam", "Category": "tags", "Order": "receipt", "Customer": "person",
+                "Admin": "shield-lock", "Discount": "ticket-perforated"}.get(self.target_type, "dot")
+
+    @property
+    def color(self):
+        return {"deleted": "danger", "removed": "danger", "blocked": "danger", "created": "success",
+                "added": "success"}.get(self.action, "primary")
+
+    def __str__(self):
+        return f"{self.username} {self.action} {self.target_type} {self.target_label}"

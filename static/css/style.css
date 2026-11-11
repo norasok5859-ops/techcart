@@ -503,3 +503,32 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5, .display-4, .display-5 { letter-spacing: -.
 .tc-price-old { color:var(--tc-muted); text-decoration:line-through; font-weight:500; font-size:.85em; margin-left:.35rem; }
 .tc-sale-badge { position:absolute; top:10px; right:10px; z-index:2; background:#e11d48; color:#fff; font-weight:700;
   font-size:.72rem; padding:.2rem .5rem; border-radius:999px; }
+
+/* ---------- Product gallery ---------- */
+.tc-gallery-thumbs { display:flex; gap:.6rem; margin-top:.8rem; overflow-x:auto; padding-bottom:2px; }
+.tc-gallery-thumb { width:72px; height:72px; flex-shrink:0; border:2px solid var(--tc-line); border-radius:12px; background:#fff;
+  padding:3px; cursor:pointer; transition:border-color .15s; }
+.tc-gallery-thumb img { width:100%; height:100%; object-fit:contain; border-radius:8px; }
+.tc-gallery-thumb:hover { border-color:#c7c2fb; }
+.tc-gallery-thumb.is-active { border-color:var(--tc-accent); }
+.tc-gallery-admin { display:grid; grid-template-columns:repeat(4, 1fr); gap:.5rem; }
+.tc-gallery-item { position:relative; aspect-ratio:1/1; border:1px solid var(--tc-line); border-radius:10px; overflow:hidden; background:#fff; }
+.tc-gallery-item img { width:100%; height:100%; object-fit:contain; }
+.tc-gallery-actions { position:absolute; inset:auto 0 0 0; display:flex; justify-content:center; gap:4px; padding:4px;
+  background:linear-gradient(transparent, rgba(16,24,40,.45)); opacity:0; transition:opacity .15s; }
+.tc-gallery-item:hover .tc-gallery-actions, .tc-gallery-item:focus-within .tc-gallery-actions { opacity:1; }
+.tc-gallery-actions .btn { padding:.1rem .35rem; font-size:.75rem; }
+@media (hover: none) { .tc-gallery-actions { opacity:1; } }
+
+/* ---------- Activity log ---------- */
+.tc-activity { list-style:none; margin:0; padding:0; }
+.tc-activity li { display:flex; gap:.75rem; padding:.7rem 0; border-bottom:1px solid var(--tc-line); }
+.tc-activity li:last-child { border-bottom:0; }
+.tc-activity-icon { width:34px; height:34px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+/* ---------- Packing slip / print ---------- */
+.tc-slip { max-width:800px; margin-inline:auto; background:#fff; border:1px solid var(--tc-line); border-radius:var(--tc-radius); padding:2rem; }
+.tc-slip-check { width:22px; height:22px; border:1.5px solid #98a2b3; border-radius:5px; display:inline-block; }
+@media print {
+  .tc-slip { border:0; padding:0; }
+}

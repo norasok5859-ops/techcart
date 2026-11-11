@@ -1,0 +1,26 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Activity log{% endblock %}
+{% block dashboard %}
+<div class="mb-3">
+  <h1 class="h3 fw-bold mb-0">Activity log</h1>
+  <div class="text-muted small">Every change made in this dashboard: who did it and when. Only owners can see this page.</div>
+</div>
+<form method="get" class="card tc-card p-3 mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-5"><label class="form-label small fw-semibold mb-1" for="a-q">Search</label>
+      <input id="a-q" class="form-control form-control-sm" type="search" name="q" value="{{ f.q }}" placeholder="Product, order no., code…"></div>
+    <div class="col-6 col-md-3"><label class="form-label small fw-semibold mb-1" for="a-who">Admin</label>
+      <select id="a-who" name="who" class="form-select form-select-sm"><option value="">Everyone</option>
+        {% for p in people %}<option value="{{ p }}" {% if f.who == p %}selected{% endif %}>@{{ p }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-md-3"><label class="form-label small fw-semibold mb-1" for="a-type">Type</label>
+      <select id="a-type" name="type" class="form-select form-select-sm"><option value="">Everything</option>
+        {% for t in types %}<option value="{{ t }}" {% if f.type == t %}selected{% endif %}>{{ t }}s</option>{% endfor %}</select></div>
+    <div class="col-md-1 d-flex gap-1"><button class="btn btn-sm btn-accent w-100" title="Apply filters"><i class="bi bi-funnel"></i></button>
+      {% if f.q or f.who or f.type %}<a href="?" class="btn btn-sm btn-outline-secondary" title="Clear"><i class="bi bi-x-lg"></i></a>{% endif %}</div>
+  </div>
+</form>
+<div class="card tc-card px-3">
+  {% include "dashboard/_activity_list.html" with entries=page.object_list %}
+</div>
+{% include "dashboard/_pagination.html" %}
+{% endblock %}

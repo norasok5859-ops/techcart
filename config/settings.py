@@ -183,6 +183,9 @@ AUTHENTICATION_BACKENDS = ["accounts.backends.UsernameOrEmailBackend"]
 
 # Show the one-click demo accounts on the login page (and /api/auth/demo-accounts/).
 SHOW_DEMO_ACCOUNTS = os.environ.get("TECHCART_SHOW_DEMO_ACCOUNTS", "1") == "1"
+# The demo *owner* login is not listed on the public live site (anyone could manage the store).
+# Set TECHCART_SHOW_DEMO_ADMIN=1 in Vercel to list it there anyway, e.g. while a teacher reviews the project.
+SHOW_DEMO_ADMIN = os.environ.get("TECHCART_SHOW_DEMO_ADMIN", "0" if ON_VERCEL else "1") == "1"
 
 # KHQR payments (store/payments.py). Demo values; put your real Bakong account ID here to receive money.
 KHQR_ACCOUNT_ID = os.environ.get("TECHCART_KHQR_ACCOUNT", "techcart@demo")

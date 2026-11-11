@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Packing slip {{ order.number }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3 no-print" style="max-width:800px;margin-inline:auto">
+    <a href="{% url 'dashboard:order_detail' order.pk %}" class="small"><i class="bi bi-arrow-left"></i> Back to order</a>
+    <button class="btn btn-accent" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print packing slip</button>
+  </div>
+  <article class="tc-slip">
+    <header class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 fw-bold fs-4"><span class="tc-logo"><i class="bi bi-cpu"></i></span>TechCart</div>
+        <div class="small text-muted mt-1">Laptops · PC parts · Accessories · Phnom Penh, Cambodia</div>
+      </div>
+      <div class="text-end">
+        <div class="text-uppercase small fw-bold text-muted">Packing slip</div>
+        <div class="fs-5 fw-bold">{{ order.number }}</div>
+        <div class="small text-muted">Ordered {{ order.created_at|date:"d M Y" }}</div>
+      </div>
+    </header>
+    <div class="row g-3 mb-3">
+      <div class="col-6">
+        <div class="small text-uppercase text-muted fw-bold mb-1">Ship to</div>
+        <div class="fw-semibold">{{ order.full_name }}</div>
+        <div>{{ order.phone }}</div>
+        <div>{{ order.address|linebreaksbr }}</div>
+      </div>
+      <div class="col-6">
+        <div class="small text-uppercase text-muted fw-bold mb-1">Delivery</div>
+        <div>{{ order.courier|default:"Courier: ______________" }}</div>
+        <div>{% if order.tracking_number %}Tracking: <strong>{{ order.tracking_number }}</strong>{% else %}Tracking: ______________{% endif %}</div>
+        <div class="mt-1">{% if order.is_paid %}<span class="badge text-bg-success">Paid</span>{% elif order.payment_method == "cod" %}<span class="badge text-bg-warning">Collect {{ order.total|money }} cash</span>{% else %}<span class="badge text-bg-warning">Not paid yet</span>{% endif %}</div>
+      </div>
+    </div>
+    {% if order.note %}<div class="alert alert-light border py-2 small"><i class="bi bi-chat-left-text me-1"></i><strong>Customer note:</strong> {{ order.note }}</div>{% endif %}
+    <table class="table align-middle">
+      <thead><tr><th style="width:40px"></th><th>Item</th><th>SKU</th><th class="text-center" style="width:80px">Qty</th></tr></thead>
+      <tbody>
+        {% for item in order.items.all %}
+          <tr><td><span class="tc-slip-check"></span></td><td class="fw-semibold">{{ item.product_name }}</td>
+            <td class="font-monospace small">{{ item.product.sku|default:"—" }}</td><td class="text-center fs-5 fw-bold">{{ item.quantity }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="row mt-4 small">
+      <div class="col-6">Packed by: ______________________</div>
+      <div class="col-6">Checked by: ______________________</div>
+    </div>
+    <footer class="text-center small text-muted border-top pt-3 mt-4">Thank you for shopping with TechCart! Keep your receipt for warranty claims · 7-day returns</footer>
+  </article>
+</div>
+{% endblock %}

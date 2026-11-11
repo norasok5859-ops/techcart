@@ -100,5 +100,14 @@
       {% else %}<p class="text-muted small mb-0">All products are well stocked.</p>{% endif %}
     </div>
   </div>
+  {% if user.is_superuser %}
+  <div class="col-12">
+    <div class="card tc-card p-3">
+      <div class="d-flex justify-content-between align-items-center"><h2 class="h6 fw-bold mb-0">Recent admin activity</h2>
+        <a href="{% url 'dashboard:activity' %}" class="small">Full log</a></div>
+      {% include "dashboard/_activity_list.html" with entries=recent_activity %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

@@ -1,0 +1,27 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}{% if discount %}Edit discount{% else %}Create discount{% endif %}{% endblock %}
+{% block dashboard %}
+<a href="{% url 'dashboard:discounts' %}" class="small"><i class="bi bi-arrow-left"></i> Discount codes</a>
+<h1 class="h3 fw-bold mt-2 mb-4">{% if discount %}Edit {{ discount.code }}{% else %}Create a discount code{% endif %}</h1>
+<form method="post" class="card tc-card p-4" novalidate style="max-width:820px">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+  <div class="row g-3">
+    {% include "dashboard/_field.html" with field=form.code %}
+    {% include "dashboard/_field.html" with field=form.description %}
+    {% include "dashboard/_field.html" with field=form.kind %}
+    {% include "dashboard/_field.html" with field=form.value %}
+    {% include "dashboard/_field.html" with field=form.min_order %}
+    {% include "dashboard/_field.html" with field=form.max_uses %}
+    {% include "dashboard/_field.html" with field=form.starts_at %}
+    {% include "dashboard/_field.html" with field=form.ends_at %}
+    {% include "dashboard/_field.html" with field=form.once_per_customer %}
+    {% include "dashboard/_field.html" with field=form.is_active %}
+  </div>
+  {% if discount %}<p class="small text-muted mt-3 mb-0">Used {{ discount.used_count }} time{{ discount.used_count|pluralize }} so far.</p>{% endif %}
+  <div class="d-flex gap-2 mt-4">
+    <button class="btn btn-accent" type="submit"><i class="bi bi-save me-1"></i>Save code</button>
+    <a href="{% url 'dashboard:discounts' %}" class="btn btn-outline-secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}

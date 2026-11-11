@@ -18,8 +18,10 @@
         <a class="nav-link {% if 'product' in url %}active{% endif %}" href="{% url 'dashboard:products' %}"><i class="bi bi-box-seam me-2"></i>Products</a>
         <a class="nav-link {% if 'categor' in url %}active{% endif %}" href="{% url 'dashboard:categories' %}"><i class="bi bi-tags me-2"></i>Categories</a>
         <a class="nav-link {% if 'customer' in url %}active{% endif %}" href="{% url 'dashboard:customers' %}"><i class="bi bi-people me-2"></i>Customers</a>
+        <a class="nav-link {% if 'discount' in url %}active{% endif %}" href="{% url 'dashboard:discounts' %}"><i class="bi bi-ticket-perforated me-2"></i>Discounts</a>
         <div class="tc-dash-label d-none d-lg-block">Settings</div>
         <a class="nav-link {% if 'team' in url %}active{% endif %}" href="{% url 'dashboard:team' %}"><i class="bi bi-shield-lock me-2"></i>Admin team</a>
+        {% if user.is_superuser %}<a class="nav-link {% if url == 'activity' %}active{% endif %}" href="{% url 'dashboard:activity' %}"><i class="bi bi-clock-history me-2"></i>Activity log</a>{% endif %}
         <a class="nav-link" href="/api/docs/"><i class="bi bi-braces me-2"></i>API docs</a>
         {% if user.is_superuser %}<a class="nav-link" href="{% url 'admin:index' %}"><i class="bi bi-gear me-2"></i>Django admin</a>{% endif %}
         <a class="nav-link" href="{% url 'store:home' %}" target="_blank" rel="noopener"><i class="bi bi-shop me-2"></i>View store</a>

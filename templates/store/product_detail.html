@@ -12,7 +12,22 @@
 
   <div class="row g-4 g-lg-5 align-items-start">
     <div class="col-md-6">
-      <div class="tc-detail-media">{% include "store/_product_image.html" %}</div>
+      <div class="tc-detail-media" id="gallery-main">{% include "store/_product_image.html" %}</div>
+      {% with photos=product.photos.all %}{% if photos and product.image %}
+        <div class="tc-gallery-thumbs" role="list" aria-label="More photos">
+          <button type="button" class="tc-gallery-thumb is-active" data-src="{{ product.image.url }}" aria-label="Photo 1"><img src="{{ product.image.url }}" alt=""></button>
+          {% for ph in photos %}
+            <button type="button" class="tc-gallery-thumb" data-src="{{ ph.image.url }}" aria-label="Photo {{ forloop.counter|add:1 }}"><img src="{{ ph.image.url }}" alt="" loading="lazy"></button>
+          {% endfor %}
+        </div>
+        <script>
+        document.querySelectorAll(".tc-gallery-thumb").forEach((btn) => btn.addEventListener("click", () => {
+          const img = document.querySelector("#gallery-main img");
+          if (img) img.src = btn.dataset.src;
+          document.querySelectorAll(".tc-gallery-thumb").forEach((b) => b.classList.toggle("is-active", b === btn));
+        }));
+        </script>
+      {% endif %}{% endwith %}
       {% if product.photo_source %}
         <div class="tc-credit">
           {% if product.photo_similar %}<span class="tc-credit-note"><i class="bi bi-info-circle me-1"></i>Photo shows a similar model in the same range.</span>{% endif %}

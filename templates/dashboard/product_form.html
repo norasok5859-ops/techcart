@@ -36,13 +36,35 @@
     </div>
     <div class="col-xl-4">
       <div class="card tc-card p-4 mb-4">
-        <h2 class="h6 fw-bold mb-3">Photo</h2>
+        <h2 class="h6 fw-bold mb-3">Photos</h2>
         <div class="tc-image-preview mb-3" id="img-preview">
           {% if product.image %}<img src="{{ product.image.url }}" alt="">{% else %}<span class="text-muted small"><i class="bi bi-image fs-2 d-block mb-1"></i>No photo yet</span>{% endif %}
         </div>
         {{ form.image }}
         {% if form.image.errors %}<div class="invalid-feedback d-block">{{ form.image.errors|join:" " }}</div>{% endif %}
-        <div class="form-text">JPG, PNG or WebP, up to 4 MB. Large photos are resized automatically. A square photo on a white background looks best.</div>
+        <div class="form-text">The main photo, shown on product cards. Large photos are made smaller automatically before upload. A square photo on a white background looks best.</div>
+
+        <hr class="my-3">
+        <div class="d-flex justify-content-between align-items-baseline mb-2">
+          <span class="fw-semibold small">Gallery</span><span class="small text-muted">{{ photos|length }} / 8</span>
+        </div>
+        {% if photos %}
+        <div class="tc-gallery-admin mb-3">
+          {% for ph in photos %}
+            <div class="tc-gallery-item">
+              <img src="{{ ph.image.url }}" alt="Photo {{ forloop.counter }}" loading="lazy">
+              <div class="tc-gallery-actions">
+                <button type="submit" class="btn btn-light btn-sm" formaction="{% url 'dashboard:photo_make_main' product.pk ph.pk %}" formnovalidate title="Use as main photo"><i class="bi bi-star"></i></button>
+                <button type="submit" class="btn btn-light btn-sm text-danger" formaction="{% url 'dashboard:photo_delete' product.pk ph.pk %}" formnovalidate title="Remove photo" onclick="return confirm('Remove this photo?');"><i class="bi bi-trash"></i></button>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {{ form.extra_photos }}
+        {% if form.extra_photos.errors %}<div class="invalid-feedback d-block">{{ form.extra_photos.errors|join:" " }}</div>{% endif %}
+        <div class="form-text">{{ form.extra_photos.help_text }} Select several at once.</div>
+        <div class="small text-muted mt-2 d-none" id="photo-status"></div>
       </div>
       <div class="card tc-card p-4 mb-4">
         <h2 class="h6 fw-bold mb-3">Pricing & inventory</h2>
@@ -70,17 +92,65 @@
 </form>
 <script>
 (function () {
-  const input = document.querySelector('input[type="file"][name="image"]');
+  // Shrink photos in the browser before upload: phone photos are often 3–8 MB, and the server
+  // accepts at most 4.5 MB per request. Also shows a preview of the main photo.
+  const MAX_SIDE = 1600, LIMIT = 4 * 1024 * 1024;
+  const form = document.querySelector("form[enctype]");
+  const main = form.querySelector('input[type="file"][name="image"]');
+  const extra = form.querySelector('input[type="file"][name="extra_photos"]');
+  const status = document.getElementById("photo-status");
   const box = document.getElementById("img-preview");
-  if (!input || !box) return;
-  input.addEventListener("change", () => {
-    const file = input.files && input.files[0];
-    if (!file) return;
-    if (file.size > 4 * 1024 * 1024) { alert("This photo is over 4 MB. Please choose a smaller one."); input.value = ""; return; }
-    const img = document.createElement("img");
-    img.src = URL.createObjectURL(file); img.alt = "";
-    box.replaceChildren(img);
-  });
+
+  function shrink(file) {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith("image/") || file.type === "image/gif") return resolve(file);
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
+        if (scale === 1 && file.size < 1.5 * 1024 * 1024) return resolve(file);
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+        const png = file.type === "image/png";
+        const ctx = c.getContext("2d");
+        if (!png) { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); }
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob((blob) => {
+          if (!blob || blob.size >= file.size) return resolve(file);
+          const name = file.name.replace(/\.[^.]+$/, "") + (png ? ".png" : ".jpg");
+          resolve(new File([blob], name, { type: blob.type }));
+        }, png ? "image/png" : "image/jpeg", 0.85);
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = () => resolve(file);
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  async function shrinkInput(input) {
+    if (!input || !input.files.length || typeof DataTransfer === "undefined") return;
+    const dt = new DataTransfer();
+    for (const f of input.files) dt.items.add(await shrink(f));
+    input.files = dt.files;
+  }
+
+  async function onPick(input) {
+    status.classList.remove("d-none");
+    status.textContent = "Preparing photos…";
+    await shrinkInput(input);
+    const total = [main, extra].reduce((n, i) => n + [...(i?.files || [])].reduce((m, f) => m + f.size, 0), 0);
+    status.textContent = total > LIMIT
+      ? "These photos are too big to upload together. Please choose fewer photos and save, then add the rest."
+      : `Ready to upload (${(total / 1024 / 1024).toFixed(1)} MB).`;
+    status.classList.toggle("text-danger", total > LIMIT);
+    if (input === main && main.files[0]) {
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(main.files[0]); img.alt = "";
+      box.replaceChildren(img);
+    }
+  }
+
+  main?.addEventListener("change", () => onPick(main));
+  extra?.addEventListener("change", () => onPick(extra));
 })();
 </script>
 {% endblock %}
