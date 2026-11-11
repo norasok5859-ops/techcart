@@ -1,0 +1,39 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Categories{% endblock %}
+{% block dashboard %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div><h1 class="h3 fw-bold mb-0">Categories</h1>
+    <div class="text-muted small">Categories appear in the store menu, grouped as below. Lower position numbers come first.</div></div>
+  <a href="{% url 'dashboard:category_create' %}" class="btn btn-sm btn-accent"><i class="bi bi-plus-lg me-1"></i>Add category</a>
+</div>
+{% regroup categories by get_group_display as grouped %}
+{% for g in grouped %}
+<div class="card tc-card mb-3">
+  <div class="card-header bg-transparent fw-bold small text-uppercase text-muted">{{ g.grouper }}</div>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead><tr><th>Category</th><th>Slug</th><th class="text-center">Position</th><th class="text-end">Products</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for c in g.list %}
+        <tr>
+          <td><i class="bi bi-{{ c.icon }} me-2 text-primary"></i><span class="fw-semibold">{{ c.name }}</span></td>
+          <td class="small text-muted font-monospace">{{ c.slug }}</td>
+          <td class="text-center">{{ c.position }}</td>
+          <td class="text-end"><a href="{% url 'dashboard:products' %}?category={{ c.pk }}">{{ c.n }}</a></td>
+          <td class="text-end text-nowrap">
+            <a href="{% url 'store:category' c.slug %}" class="btn btn-sm btn-outline-secondary" title="View in store" target="_blank" rel="noopener"><i class="bi bi-eye"></i></a>
+            <a href="{% url 'dashboard:category_edit' c.pk %}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{% url 'dashboard:category_delete' c.pk %}" class="d-inline" onsubmit="return confirm('Delete the {{ c.name|escapejs }} category?');">
+              {% csrf_token %}<button class="btn btn-sm btn-outline-danger" title="{% if c.n %}Has products{% else %}Delete{% endif %}" {% if c.n %}disabled{% endif %}><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% empty %}
+<div class="card tc-card p-5 text-center text-muted">No categories yet.</div>
+{% endfor %}
+{% endblock %}

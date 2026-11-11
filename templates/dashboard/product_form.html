@@ -1,28 +1,86 @@
 {% extends "dashboard/base_dashboard.html" %}
-{% block title %}{% if product %}Edit product{% else %}New product{% endif %}{% endblock %}
+{% block title %}{% if product %}Edit product{% else %}Add product{% endif %}{% endblock %}
 {% block dashboard %}
 <a href="{% url 'dashboard:products' %}" class="small"><i class="bi bi-arrow-left"></i> Products</a>
-<h1 class="h3 fw-bold mt-2 mb-4">{% if product %}Edit “{{ product.name }}”{% else %}New product{% endif %}</h1>
-<form method="post" enctype="multipart/form-data" class="card tc-card p-4" novalidate>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 mb-4">
+  <h1 class="h3 fw-bold mb-0">{% if product %}Edit “{{ product.name }}”{% else %}Add a product{% endif %}</h1>
+  {% if product %}<a href="{{ product.get_absolute_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary"><i class="bi bi-box-arrow-up-right me-1"></i>View in store</a>{% endif %}
+</div>
+<form method="post" enctype="multipart/form-data" novalidate>
   {% csrf_token %}
-  <div class="row g-3">
-    {% for field in form %}
-      {% if field.name == "is_featured" or field.name == "is_active" %}
-        <div class="col-sm-6"><div class="form-check form-switch">{{ field }}
-          <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div></div>
-      {% else %}
-        <div class="{% if field.name == 'description' or field.name == 'name' %}col-12{% else %}col-sm-6{% endif %}">
-          <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
-          {{ field }}
-          {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|join:" " }}</div>{% endif %}
-          {% if field.name == "image" %}<div class="form-text">Optional. Without an image, the category icon is shown.</div>{% endif %}
+  {% if form.errors %}<div class="alert alert-danger py-2 small"><i class="bi bi-exclamation-circle me-1"></i>Please fix the highlighted fields below.{% if form.non_field_errors %} {{ form.non_field_errors|join:" " }}{% endif %}</div>{% endif %}
+  <div class="row g-4">
+    <div class="col-xl-8">
+      <div class="card tc-card p-4 mb-4">
+        <h2 class="h6 fw-bold mb-3">Basic information</h2>
+        <div class="row g-3">
+          {% include "dashboard/_field.html" with field=form.name col="col-12" %}
+          {% include "dashboard/_field.html" with field=form.brand %}
+          {% include "dashboard/_field.html" with field=form.category %}
+          {% include "dashboard/_field.html" with field=form.summary col="col-12" %}
+          {% include "dashboard/_field.html" with field=form.description col="col-12" %}
         </div>
-      {% endif %}
-    {% endfor %}
+      </div>
+      <div class="card tc-card p-4 mb-4">
+        <h2 class="h6 fw-bold mb-3">Specifications</h2>
+        <div class="row g-3">
+          {% include "dashboard/_field.html" with field=form.spec_lines col="col-12" %}
+          <div class="col-12">
+            <details {% if form.compat_json.value or form.compat_json.errors %}open{% endif %}>
+              <summary class="small fw-semibold text-muted">PC builder compatibility (for PC parts only)</summary>
+              <div class="row g-3 mt-1">{% include "dashboard/_field.html" with field=form.compat_json col="col-12" %}</div>
+            </details>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-4">
+      <div class="card tc-card p-4 mb-4">
+        <h2 class="h6 fw-bold mb-3">Photo</h2>
+        <div class="tc-image-preview mb-3" id="img-preview">
+          {% if product.image %}<img src="{{ product.image.url }}" alt="">{% else %}<span class="text-muted small"><i class="bi bi-image fs-2 d-block mb-1"></i>No photo yet</span>{% endif %}
+        </div>
+        {{ form.image }}
+        {% if form.image.errors %}<div class="invalid-feedback d-block">{{ form.image.errors|join:" " }}</div>{% endif %}
+        <div class="form-text">JPG, PNG or WebP, up to 4 MB. Large photos are resized automatically. A square photo on a white background looks best.</div>
+      </div>
+      <div class="card tc-card p-4 mb-4">
+        <h2 class="h6 fw-bold mb-3">Pricing & inventory</h2>
+        <div class="row g-3">
+          {% include "dashboard/_field.html" with field=form.price %}
+          {% include "dashboard/_field.html" with field=form.compare_at_price %}
+          {% include "dashboard/_field.html" with field=form.stock %}
+          {% include "dashboard/_field.html" with field=form.sku %}
+        </div>
+      </div>
+      <div class="card tc-card p-4 mb-4">
+        <h2 class="h6 fw-bold mb-2">Visibility</h2>
+        <div class="row g-2">
+          {% include "dashboard/_field.html" with field=form.is_active col="col-12" %}
+          {% include "dashboard/_field.html" with field=form.is_featured col="col-12" %}
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="d-flex gap-2 mt-4">
+  <div class="tc-form-actions d-flex flex-wrap gap-2">
     <button class="btn btn-accent" type="submit"><i class="bi bi-save me-1"></i>Save product</button>
+    {% if not product %}<button class="btn btn-outline-primary" type="submit" name="then" value="add_another">Save and add another</button>{% endif %}
     <a href="{% url 'dashboard:products' %}" class="btn btn-outline-secondary">Cancel</a>
   </div>
 </form>
+<script>
+(function () {
+  const input = document.querySelector('input[type="file"][name="image"]');
+  const box = document.getElementById("img-preview");
+  if (!input || !box) return;
+  input.addEventListener("change", () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) { alert("This photo is over 4 MB. Please choose a smaller one."); input.value = ""; return; }
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(file); img.alt = "";
+    box.replaceChildren(img);
+  });
+})();
+</script>
 {% endblock %}

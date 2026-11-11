@@ -40,9 +40,15 @@ class Product(models.Model):
     name = models.CharField(max_length=150)
     slug = models.SlugField(max_length=160, unique=True, blank=True)
     brand = models.CharField(max_length=80, blank=True)
+    sku = models.CharField("SKU", max_length=40, blank=True, db_index=True,
+                           help_text="Optional. Must be unique.")
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2,
                                 validators=[MinValueValidator(Decimal("0.01"))])
+    compare_at_price = models.DecimalField(
+        "Original price", max_digits=10, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
+        help_text="Optional. Shows a sale.")
     stock = models.PositiveIntegerField(default=0)
     image = models.ImageField(upload_to="products/", blank=True, null=True)
     specs = models.JSONField(
@@ -74,6 +80,16 @@ class Product(models.Model):
 
     def get_absolute_url(self):
         return reverse("store:product_detail", args=[self.slug])
+
+    @property
+    def on_sale(self):
+        return bool(self.compare_at_price and self.compare_at_price > self.price)
+
+    @property
+    def discount_percent(self):
+        if not self.on_sale:
+            return 0
+        return int(round((1 - self.price / self.compare_at_price) * 100))
 
     @property
     def in_stock(self):
@@ -199,3 +215,15 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} x {self.product_name}"
+
+
+class StoredFile(models.Model):
+    """An uploaded file kept in the database (store/storage.py). Used on Vercel, whose disk is read-only."""
+    name = models.CharField(max_length=255, unique=True)
+    content = models.BinaryField()
+    content_type = models.CharField(max_length=100, blank=True)
+    size = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name

@@ -16,10 +16,12 @@ class CategorySerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
     in_stock = serializers.BooleanField(read_only=True)
+    on_sale = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Product
-        fields = ["id", "name", "slug", "brand", "description", "price", "stock", "in_stock",
+        fields = ["id", "name", "slug", "brand", "sku", "description", "price", "compare_at_price", "on_sale",
+                  "stock", "in_stock",
                   "image", "specs", "is_featured", "is_active", "category", "category_name",
                   "created_at", "updated_at"]
         read_only_fields = ["slug", "created_at", "updated_at"]

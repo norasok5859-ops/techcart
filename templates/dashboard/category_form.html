@@ -1,0 +1,29 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}{% if category %}Edit category{% else %}Add category{% endif %}{% endblock %}
+{% block dashboard %}
+<a href="{% url 'dashboard:categories' %}" class="small"><i class="bi bi-arrow-left"></i> Categories</a>
+<h1 class="h3 fw-bold mt-2 mb-4">{% if category %}Edit “{{ category.name }}”{% else %}Add a category{% endif %}</h1>
+<form method="post" class="card tc-card p-4" novalidate style="max-width:760px">
+  {% csrf_token %}
+  <div class="row g-3">
+    {% include "dashboard/_field.html" with field=form.name %}
+    {% include "dashboard/_field.html" with field=form.group %}
+    <div class="col-sm-6">
+      <label class="form-label fw-semibold" for="{{ form.icon.id_for_label }}">{{ form.icon.label }}</label>
+      <div class="input-group"><span class="input-group-text"><i class="bi bi-{{ form.icon.value|default:'box-seam' }}" id="icon-preview"></i></span>{{ form.icon }}</div>
+      {% if form.icon.errors %}<div class="invalid-feedback d-block">{{ form.icon.errors|join:" " }}</div>{% endif %}
+      <div class="form-text">{{ form.icon.help_text }} <a href="https://icons.getbootstrap.com/" target="_blank" rel="noopener">Browse icons</a></div>
+    </div>
+    {% include "dashboard/_field.html" with field=form.position %}
+  </div>
+  <div class="d-flex gap-2 mt-4">
+    <button class="btn btn-accent" type="submit"><i class="bi bi-save me-1"></i>Save category</button>
+    <a href="{% url 'dashboard:categories' %}" class="btn btn-outline-secondary">Cancel</a>
+  </div>
+</form>
+<script>
+document.getElementById("{{ form.icon.id_for_label }}").addEventListener("input", (e) => {
+  document.getElementById("icon-preview").className = "bi bi-" + (e.target.value.trim() || "box-seam");
+});
+</script>
+{% endblock %}

@@ -27,7 +27,8 @@
       </div>
       <div class="text-muted fw-semibold mb-1">{{ product.brand }}</div>
       <h1 class="display-6 fw-bold mb-3">{{ product.name }}</h1>
-      <div class="tc-price display-6 mb-3">{{ product.price|money }}</div>
+      <div class="tc-price display-6 mb-3">{{ product.price|money }}{% if product.on_sale %}<span class="tc-price-old fs-5">{{ product.compare_at_price|money }}</span>
+        <span class="badge text-bg-danger fs-6 align-middle ms-1">Save {{ product.discount_percent }}%</span>{% endif %}</div>
 
       {% if product.stock > 5 %}
         <span class="tc-stock-pill bg-success-subtle text-success-emphasis"><i class="bi bi-check-circle-fill"></i>In stock · ready to ship</span>

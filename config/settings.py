@@ -169,6 +169,16 @@ WHITENOISE_USE_FINDERS = True
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Uploaded product photos. On Vercel (read-only disk) they are kept in the database; locally in media/.
+STORAGES = {
+    "default": {"BACKEND": "store.storage.DatabaseStorage" if ON_VERCEL or DATABASE_URL
+                else "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+# Vercel refuses request bodies over 4.5 MB, so photos are limited to 4 MB (and resized on upload).
+MAX_UPLOAD_IMAGE_MB = 4
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+
 AUTHENTICATION_BACKENDS = ["accounts.backends.UsernameOrEmailBackend"]
 
 # Show the one-click demo accounts on the login page (and /api/auth/demo-accounts/).

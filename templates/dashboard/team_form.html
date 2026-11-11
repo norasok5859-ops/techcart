@@ -1,0 +1,31 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}{% if member %}Edit admin{% else %}Add admin{% endif %}{% endblock %}
+{% block dashboard %}
+<a href="{% url 'dashboard:team' %}" class="small"><i class="bi bi-arrow-left"></i> Admin team</a>
+<h1 class="h3 fw-bold mt-2 mb-1">{% if member %}Edit {{ member.get_full_name|default:member.username }}{% else %}Add an admin{% endif %}</h1>
+<p class="text-muted small mb-4">{% if member %}@{{ member.username }} · joined {{ member.date_joined|date:"d M Y" }}{% else %}They log in on the normal login page with this username and password, then open the dashboard.{% endif %}</p>
+<form method="post" class="card tc-card p-4" novalidate style="max-width:760px">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+  <div class="row g-3">
+    {% include "dashboard/_field.html" with field=form.first_name %}
+    {% include "dashboard/_field.html" with field=form.last_name %}
+    {% if form.username %}{% include "dashboard/_field.html" with field=form.username %}{% endif %}
+    {% include "dashboard/_field.html" with field=form.email %}
+    {% include "dashboard/_field.html" with field=form.role col="col-12" %}
+    {% if member and member.pk == user.pk %}<div class="col-12 form-text mt-0">You can't change your own role or disable your own account.</div>{% endif %}
+    {% if form.password1 %}
+      {% include "dashboard/_field.html" with field=form.password1 %}
+      {% include "dashboard/_field.html" with field=form.password2 %}
+      <div class="col-12 form-text mt-0">At least 8 characters, not too common, and not similar to the name or email.</div>
+    {% else %}
+      {% include "dashboard/_field.html" with field=form.new_password %}
+      {% include "dashboard/_field.html" with field=form.is_active %}
+    {% endif %}
+  </div>
+  <div class="d-flex gap-2 mt-4">
+    <button class="btn btn-accent" type="submit"><i class="bi bi-save me-1"></i>{% if member %}Save changes{% else %}Create admin{% endif %}</button>
+    <a href="{% url 'dashboard:team' %}" class="btn btn-outline-secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}

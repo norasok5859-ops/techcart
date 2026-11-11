@@ -30,12 +30,19 @@ Customers can browse, search and filter products, build a custom PC, manage a ca
 - Checkout with cash on delivery, with form validation
 - Order history, order progress tracker, and cancelling a pending order
 
-**Admin (staff users)**
-- Dashboard with revenue, orders, active products and low-stock alerts
-- Create, edit and delete products (with optional image upload)
-- Update stock levels directly from the product table
-- View all orders, filter by status, and update order status
-- Cancelling an order automatically returns its items to stock
+**Admin dashboard (`/dashboard/`)**
+- Two roles: **Owner** (everything, including the admin team) and **Staff** (orders, products, categories,
+  customers). Owners add admins, change roles, reset passwords, disable or remove admin access; the store
+  always keeps at least one active owner, and nobody can lock themselves out.
+- Overview: revenue, average order, customers, 14-day sales chart, best sellers, recent orders, low stock
+- Products: add / edit with photo upload (resized automatically; kept in the database on Vercel), SKU,
+  sale price (shows a crossed-out original price and a discount badge in the store), a simple
+  “Name: value” spec sheet, PC-builder data; search and filter by category, stock and status; bulk
+  show / hide / feature / delete; duplicate a product; export to CSV
+- Categories: add, edit, reorder, choose the menu group and icon
+- Orders: search by order number, name, phone or email; filter by status and payment; update status;
+  export to CSV. Cancelling an order returns its items to stock
+- Customers: orders and total spent per customer, block / unblock, promote to staff, export to CSV
 - Full Django admin at `/admin/`
 
 **API**

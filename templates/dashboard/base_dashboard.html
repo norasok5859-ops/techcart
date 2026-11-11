@@ -3,14 +3,26 @@
 <div class="container-fluid container-xl py-4">
   <div class="row g-4">
     <aside class="col-lg-2">
-      <div class="small text-uppercase text-muted fw-semibold mb-2">Admin</div>
+      <div class="tc-dash-user d-flex align-items-center gap-2 mb-3">
+        <span class="tc-avatar">{{ user.first_name|default:user.username|slice:":1"|upper }}</span>
+        <div class="lh-sm">
+          <div class="fw-semibold small">{{ user.get_full_name|default:user.username }}</div>
+          <div class="text-muted" style="font-size:.75rem">{% if user.is_superuser %}Owner{% else %}Staff{% endif %}</div>
+        </div>
+      </div>
       <nav class="nav nav-pills flex-lg-column gap-1 tc-dash-nav">
         {% with url=request.resolver_match.url_name %}
+        <div class="tc-dash-label d-none d-lg-block">Store</div>
         <a class="nav-link {% if url == 'overview' %}active{% endif %}" href="{% url 'dashboard:overview' %}"><i class="bi bi-speedometer2 me-2"></i>Overview</a>
-        <a class="nav-link {% if 'product' in url %}active{% endif %}" href="{% url 'dashboard:products' %}"><i class="bi bi-box-seam me-2"></i>Products</a>
         <a class="nav-link {% if 'order' in url %}active{% endif %}" href="{% url 'dashboard:orders' %}"><i class="bi bi-receipt me-2"></i>Orders</a>
+        <a class="nav-link {% if 'product' in url %}active{% endif %}" href="{% url 'dashboard:products' %}"><i class="bi bi-box-seam me-2"></i>Products</a>
+        <a class="nav-link {% if 'categor' in url %}active{% endif %}" href="{% url 'dashboard:categories' %}"><i class="bi bi-tags me-2"></i>Categories</a>
+        <a class="nav-link {% if 'customer' in url %}active{% endif %}" href="{% url 'dashboard:customers' %}"><i class="bi bi-people me-2"></i>Customers</a>
+        <div class="tc-dash-label d-none d-lg-block">Settings</div>
+        <a class="nav-link {% if 'team' in url %}active{% endif %}" href="{% url 'dashboard:team' %}"><i class="bi bi-shield-lock me-2"></i>Admin team</a>
         <a class="nav-link" href="/api/docs/"><i class="bi bi-braces me-2"></i>API docs</a>
-        <a class="nav-link" href="{% url 'admin:index' %}"><i class="bi bi-gear me-2"></i>Django admin</a>
+        {% if user.is_superuser %}<a class="nav-link" href="{% url 'admin:index' %}"><i class="bi bi-gear me-2"></i>Django admin</a>{% endif %}
+        <a class="nav-link" href="{% url 'store:home' %}" target="_blank" rel="noopener"><i class="bi bi-shop me-2"></i>View store</a>
         {% endwith %}
       </nav>
     </aside>

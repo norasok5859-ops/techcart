@@ -1,12 +1,62 @@
 {% extends "dashboard/base_dashboard.html" %}
 {% block title %}Dashboard{% endblock %}
 {% block dashboard %}
-<h1 class="h3 fw-bold mb-4">Overview</h1>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+  <div><h1 class="h3 fw-bold mb-0">Welcome back, {{ user.first_name|default:user.username }}</h1>
+    <div class="text-muted small">Here's how TechCart is doing.</div></div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'dashboard:product_create' %}" class="btn btn-sm btn-accent"><i class="bi bi-plus-lg me-1"></i>Add product</a>
+    {% if stats.pending %}<a href="{% url 'dashboard:orders' %}?status=pending" class="btn btn-sm btn-outline-warning"><i class="bi bi-hourglass-split me-1"></i>{{ stats.pending }} pending order{{ stats.pending|pluralize }}</a>{% endif %}
+  </div>
+</div>
 <div class="row g-3 mb-4">
-  <div class="col-6 col-xl-3"><div class="card tc-stat p-3 h-100"><div class="text-muted small">Revenue (excl. cancelled)</div><div class="fs-3 fw-bold">{{ stats.revenue|money }}</div></div></div>
-  <div class="col-6 col-xl-3"><div class="card tc-stat p-3 h-100"><div class="text-muted small">Orders</div><div class="fs-3 fw-bold">{{ stats.orders }}</div><div class="small text-warning-emphasis">{{ stats.pending }} pending</div></div></div>
-  <div class="col-6 col-xl-3"><div class="card tc-stat p-3 h-100"><div class="text-muted small">Active products</div><div class="fs-3 fw-bold">{{ stats.products }}</div></div></div>
-  <div class="col-6 col-xl-3"><div class="card tc-stat p-3 h-100"><div class="text-muted small">Low stock (≤ 5)</div><div class="fs-3 fw-bold {% if stats.low_stock %}text-danger{% endif %}">{{ stats.low_stock }}</div></div></div>
+  <div class="col-6 col-xl-3"><div class="card tc-stat p-3 h-100"><div class="d-flex justify-content-between"><div class="text-muted small">Revenue</div><i class="bi bi-cash-stack text-success"></i></div>
+    <div class="fs-3 fw-bold">{{ stats.revenue|money }}</div><div class="small text-muted">Avg. order {{ stats.avg_order|money }}</div></div></div>
+  <div class="col-6 col-xl-3"><div class="card tc-stat p-3 h-100"><div class="d-flex justify-content-between"><div class="text-muted small">Orders</div><i class="bi bi-receipt text-primary"></i></div>
+    <div class="fs-3 fw-bold">{{ stats.orders }}</div><div class="small text-warning-emphasis">{{ stats.pending }} pending</div></div></div>
+  <div class="col-6 col-xl-3"><div class="card tc-stat p-3 h-100"><div class="d-flex justify-content-between"><div class="text-muted small">Customers</div><i class="bi bi-people text-info"></i></div>
+    <div class="fs-3 fw-bold">{{ stats.customers }}</div><div class="small text-muted">+{{ stats.new_customers }} in the last 30 days</div></div></div>
+  <div class="col-6 col-xl-3"><div class="card tc-stat p-3 h-100"><div class="d-flex justify-content-between"><div class="text-muted small">Products</div><i class="bi bi-box-seam text-secondary"></i></div>
+    <div class="fs-3 fw-bold">{{ stats.products }}</div>
+    <a href="{% url 'dashboard:products' %}?stock=low" class="small {% if stats.low_stock %}text-danger{% else %}text-muted{% endif %} text-decoration-none">{{ stats.low_stock }} low on stock</a></div></div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-xl-8">
+    <div class="card tc-card p-3 h-100">
+      <div class="d-flex justify-content-between align-items-baseline mb-3">
+        <h2 class="h6 fw-bold mb-0">Sales, last 14 days</h2><span class="small text-muted">{{ stats.sales_14d|money }} total</span>
+      </div>
+      <div class="tc-bars" role="img" aria-label="Daily sales for the last 14 days">
+        {% for d in chart %}
+          <div class="tc-bar" title="{{ d.day|date:'D d M' }}: {{ d.total|money }}">
+            <div class="tc-bar-fill" style="height: {% if d.total %}{{ d.pct|default:2 }}{% else %}0{% endif %}%"></div>
+            <div class="tc-bar-label">{{ d.day|date:"d" }}</div>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        {% for label, n, value in status_counts %}
+          <a href="{% url 'dashboard:orders' %}?status={{ value }}" class="badge rounded-pill text-bg-light border text-decoration-none">{{ label }}: {{ n }}</a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card tc-card p-3 h-100">
+      <h2 class="h6 fw-bold mb-2">Best sellers</h2>
+      {% if top_products %}
+      <ol class="list-group list-group-numbered list-group-flush">
+        {% for t in top_products %}
+          <li class="list-group-item d-flex justify-content-between align-items-start px-0">
+            <div class="ms-2 me-auto small"><div class="fw-semibold">{{ t.product_name }}</div>{{ t.revenue|money }}</div>
+            <span class="badge text-bg-light border">{{ t.qty }} sold</span>
+          </li>
+        {% endfor %}
+      </ol>
+      {% else %}<p class="text-muted small mb-0">No sales yet.</p>{% endif %}
+    </div>
+  </div>
 </div>
 
 <div class="row g-4">
@@ -29,11 +79,6 @@
         </table>
       </div>
       {% else %}<p class="text-muted small mb-0">No orders yet.</p>{% endif %}
-      <div class="d-flex flex-wrap gap-2 mt-3">
-        {% for label, n, value in status_counts %}
-          <a href="{% url 'dashboard:orders' %}?status={{ value }}" class="badge rounded-pill text-bg-light border text-decoration-none">{{ label }}: {{ n }}</a>
-        {% endfor %}
-      </div>
     </div>
   </div>
   <div class="col-xl-5">
@@ -42,8 +87,8 @@
       {% if low_stock_products %}
       <ul class="list-group list-group-flush">
         {% for p in low_stock_products %}
-          <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-            <span>{{ p.name }}</span>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 gap-2">
+            <span class="small">{{ p.name }}</span>
             <form method="post" action="{% url 'dashboard:product_stock' p.pk %}" class="d-flex gap-1">
               {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
               <input type="number" name="stock" min="0" value="{{ p.stock }}" class="form-control form-control-sm" style="width:75px" aria-label="Stock for {{ p.name }}">
